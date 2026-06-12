@@ -1093,7 +1093,8 @@
     <span id="saTitle">STRUM ALONG</span>
     <span id="saBpmLbl" class="hud-label"></span>
     <label id="saSpeedWrap">speed <input type="range" id="saSpeed" min="40" max="100" step="5" value="100"><span id="saSpeedLbl">100%</span></label>
-    <label id="saVolWrap">band <input type="range" id="saVol" min="0" max="100" value="80"></label>
+    <button class="pill-btn" id="saBandBtn">Synth: off</button>
+    <label id="saVolWrap">synth vol <input type="range" id="saVol" min="0" max="100" value="80"></label>
     <button class="pill-btn" id="saPause">Pause</button>
     <button class="pill-btn" id="saChallengeBtn">Challenge: off</button>
     <button class="pill-btn" id="saBack">Back</button>
@@ -5991,7 +5992,7 @@ function aiSuggestNext(bases) {
 const sa = { on: false, paused: false, seq: [], events: [], total: 0, chordDur: 0,
   startAt: 0, pausedPos: 0, passBase: 0, idx: 0, timer: null, speed: 1, bpm: 75,
   gain: null, lastLyric: -1, pills: [], raf: 0, hitT: 0,
-  pauseMode: false, wrongPauseAt: 0 };
+  pauseMode: false, wrongPauseAt: 0, bandOn: false };
 
 function saRootMidi(base) {
   const m = base && base.match(/^([A-G][#b]?)/);
@@ -6363,25 +6364,29 @@ function saRender() {
       sa.chordHits = {};
     }
   }
-  // YT drift correction: if highway clock drifts from YT position by > 250ms, resync once per second
+  // YT sync: continuously track YT position so highway matches the real song
   if (ytSync.active && ytSync.offset !== null && yt.player && sa.on && !sa.paused && sa.speed === 1) {
     const _pn = performance.now();
-    if (_pn - ytSync.lastCorr > 1000) {
+    if (_pn - ytSync.lastCorr > 200) {
       try {
         const ytNow = yt.player.getCurrentTime ? yt.player.getCurrentTime() : null;
         if (ytNow !== null) {
-          const rawExp = ytNow - ytSync.offset;
-          const expected = ((rawExp % sa.total) + sa.total) % sa.total;
-          const actual = saPos() % sa.total;
-          const drift = expected - actual;
-          if (Math.abs(drift) > 0.25) {
-            ytSync.lastCorr = _pn;
-            sa.startAt = audio.ctx.currentTime - expected;
+          const targetPos = ytNow - ytSync.offset;
+          const actual = saPos();
+          const drift = targetPos - actual;
+          ytSync.lastCorr = _pn;
+          if (Math.abs(drift) > 0.5) {
+            // large jump: snap and reschedule the synth scheduler
+            const wrapped = ((targetPos % sa.total) + sa.total) % sa.total;
+            sa.startAt = audio.ctx.currentTime - wrapped;
             sa.passBase = 0;
-            sa.idx = sa.events.findIndex(e => e.t >= expected - 0.01);
+            sa.idx = sa.events.findIndex(e => e.t >= wrapped - 0.01);
             if (sa.idx < 0) sa.idx = sa.events.length;
             clearTimeout(sa.timer);
             saScheduler();
+          } else if (Math.abs(drift) > 0.02) {
+            // small drift: smoothly nudge the clock without rescheduling
+            sa.startAt -= drift * 0.25;
           }
         }
       } catch(e) {}
@@ -6518,7 +6523,13 @@ function saStart(parsed) {
     sa.gain.connect(audio.ctx.destination);
     sa.gainCtx = audio.ctx;
   }
-  sa.gain.gain.value = document.getElementById('saVol').value / 100;
+  // default synth band OFF when a YT video is loaded (real song is the audio)
+  const ytDockEl = document.getElementById('ytDock');
+  const ytAvail = ytDockEl && ytDockEl.style.display !== 'none' && yt.player && yt.ready;
+  sa.bandOn = !ytAvail;
+  const bandBtn = document.getElementById('saBandBtn');
+  if (bandBtn) { bandBtn.textContent = 'Synth: ' + (sa.bandOn ? 'on' : 'off'); bandBtn.classList.toggle('on', sa.bandOn); }
+  sa.gain.gain.value = sa.bandOn ? (document.getElementById('saVol').value / 100) : 0;
   detector.pool = null;                          // compare against ALL chords so wrong ones get named honestly
   detector.saMode = true;
   detector.saBaseline = 0;                       // reset slow EMA so first strum is measured from silence
@@ -6640,7 +6651,14 @@ document.getElementById('saSpeed').addEventListener('input', (e) => {
   saSetSpeed(pct / 100);
 });
 document.getElementById('saVol').addEventListener('input', (e) => {
-  if (sa.gain) sa.gain.gain.value = e.target.value / 100;
+  if (sa.gain && sa.bandOn) sa.gain.gain.value = e.target.value / 100;
+});
+document.getElementById('saBandBtn').addEventListener('click', () => {
+  sa.bandOn = !sa.bandOn;
+  const btn = document.getElementById('saBandBtn');
+  btn.textContent = 'Synth: ' + (sa.bandOn ? 'on' : 'off');
+  btn.classList.toggle('on', sa.bandOn);
+  if (sa.gain) sa.gain.gain.value = sa.bandOn ? (document.getElementById('saVol').value / 100) : 0;
 });
 document.getElementById('saChallengeBtn').addEventListener('click', () => {
   sa.pauseMode = !sa.pauseMode;
