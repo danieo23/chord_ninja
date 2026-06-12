@@ -113,14 +113,17 @@
   /* ---------- home: transparent over the island scene ---------- */
   #startOverlay{background:transparent;backdrop-filter:none;
     flex-direction:column;justify-content:space-between;align-items:stretch;
-    padding:max(22px,env(safe-area-inset-top)) 18px 18px}
+    padding:0 18px 18px}
   .home-top{text-align:center;pointer-events:none}
   #startOverlay h1{font-size:clamp(38px,6vw,56px);color:#FFFFFF;
     text-shadow:0 3px 0 rgba(31,90,110,.35), 0 8px 26px rgba(20,70,95,.45)}
   #startOverlay h1 .slash{color:#FFD24D}
   #startOverlay .tagline{color:rgba(255,255,255,.95);text-shadow:0 2px 10px rgba(20,70,95,.5);
     font-weight:800;margin:6px 0 0}
-  .home-utils{position:absolute;top:max(20px,env(safe-area-inset-top));right:20px;display:flex;gap:8px}
+  .home-header{display:grid;grid-template-columns:1fr auto 1fr;align-items:flex-start;width:100%;
+    padding-top:max(4px,env(safe-area-inset-top));gap:8px}
+  .home-header .home-top{grid-column:2;text-align:center;pointer-events:none}
+  .home-utils{grid-column:3;display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;align-self:flex-start}
   #startOverlay button.secondary{background:rgba(255,255,255,.42);border:1.5px solid rgba(255,255,255,.7);
     color:#14485C;backdrop-filter:blur(6px);font-weight:600}
   #startOverlay button.secondary:hover{background:rgba(255,255,255,.6);border-color:#fff}
@@ -711,17 +714,19 @@
 
 <!-- START -->
 <div class="overlay" id="startOverlay">
-  <div class="home-top">
-    <h1>Chord <span class="slash">Ninja</span></h1>
-    <p class="tagline">Your guitar is the controller. The mic hears your chords.</p>
-  </div>
-
-  <div class="home-utils">
-    <button class="secondary" id="musicBtn" title="Island theme on the home screen">Music: On</button>
-    <button class="secondary" id="sceneBtn" title="Scene: auto follows your clock">Scene: Auto</button>
-    <button class="secondary" id="tunerBtn">Tuner</button>
-    <button class="secondary" id="practiceBtn">Mic check</button>
-    <button class="secondary" id="levelBtn">Set Level</button>
+  <div class="home-header">
+    <div></div>
+    <div class="home-top">
+      <h1>Chord <span class="slash">Ninja</span></h1>
+      <p class="tagline">Your guitar is the controller. The mic hears your chords.</p>
+    </div>
+    <div class="home-utils">
+      <button class="secondary" id="musicBtn" title="Island theme on the home screen">Music: On</button>
+      <button class="secondary" id="sceneBtn" title="Scene: auto follows your clock">Scene: Auto</button>
+      <button class="secondary" id="tunerBtn">Tuner</button>
+      <button class="secondary" id="practiceBtn">Mic check</button>
+      <button class="secondary" id="levelBtn">Set Level</button>
+    </div>
   </div>
 
   <div id="homeMain" class="home-dock">
@@ -9587,6 +9592,20 @@ document.getElementById('levelBtn').addEventListener('click', showOnboarding);
 updateLevelBtn();
 renderYourPath();
 if (!pLoad('playerLevel', null)) showOnboarding();
+
+// click outside any panel to go home (backdrop click, not inner card click)
+document.querySelectorAll('.overlay').forEach(ov => {
+  const id = ov.id;
+  if (id === 'startOverlay' || id === 'onboardingOverlay') return;
+  ov.addEventListener('click', e => {
+    if (e.target !== ov) return;
+    if (id === 'gameover') { ov.style.display = 'none'; }
+    goHome();
+  });
+});
+document.querySelectorAll('.home-sub').forEach(sub => {
+  sub.addEventListener('click', e => { if (e.target === sub) homeNav('main'); });
+});
 
 // the menu opens over a living scene
 ambientStart();
