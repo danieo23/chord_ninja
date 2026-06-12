@@ -661,9 +661,33 @@
     font-weight:700;font-size:21px;color:#FFF3E0;background:rgba(255,255,255,.1);
     border:2px solid rgba(255,255,255,.3);border-radius:14px;padding:9px 16px;white-space:nowrap;will-change:left}
   .sa-pill.nod{border-style:dashed;opacity:.55}
-  .sa-pill.now{background:rgba(255,197,77,.25);border-color:#FFC54D;color:#FFE9B8;
+  .sa-pill{overflow:hidden}
+  .sa-pill.now{background:rgba(255,197,77,.18);border-color:#FFC54D;color:#FFE9B8;
     box-shadow:0 0 16px rgba(255,197,77,.35);font-size:24px}
+  .sa-pill.now::after{content:'';position:absolute;inset:0;border-radius:12px;
+    background:linear-gradient(to right,rgba(255,197,77,.45) var(--kfill,0%),transparent var(--kfill,0%));
+    pointer-events:none}
   .sa-pill.done{opacity:.32}
+  /* strum pattern bar */
+  #saStrumRow{display:flex;align-items:center;justify-content:center;gap:4px;padding:4px 18px 6px;flex-wrap:wrap}
+  .sa-sc{display:flex;flex-direction:column;align-items:center;width:32px;padding:4px 0 2px;
+    border-radius:10px;background:rgba(255,255,255,.05);border:1.5px solid rgba(255,255,255,.12);transition:background .08s,border-color .08s}
+  .sa-sc .sa-sc-arrow{font-size:16px;line-height:1;font-weight:800;color:rgba(255,243,224,.35);transition:color .08s}
+  .sa-sc .sa-sc-lbl{font-family:'Fredoka',sans-serif;font-weight:600;font-size:9px;color:rgba(255,243,224,.3);transition:color .08s}
+  .sa-sc.down .sa-sc-arrow{color:rgba(255,197,77,.4)}
+  .sa-sc.up .sa-sc-arrow{color:rgba(143,214,148,.4)}
+  .sa-sc.active.down{background:rgba(255,197,77,.2);border-color:#FFC54D}
+  .sa-sc.active.down .sa-sc-arrow{color:#FFC54D}
+  .sa-sc.active.down .sa-sc-lbl{color:rgba(255,197,77,.8)}
+  .sa-sc.active.up{background:rgba(143,214,148,.2);border-color:#8FD694}
+  .sa-sc.active.up .sa-sc-arrow{color:#8FD694}
+  .sa-sc.active.up .sa-sc-lbl{color:rgba(143,214,148,.8)}
+  .sa-sc-gap{width:12px;flex-shrink:0}
+  /* sync nudge banner */
+  #saSyncNudge{display:none;align-items:center;justify-content:center;gap:10px;
+    padding:5px 18px;background:rgba(255,197,77,.12);border-bottom:1px solid rgba(255,197,77,.2);
+    font-size:12px;color:rgba(255,243,224,.75);font-weight:700;letter-spacing:.05em}
+  #saSyncNudge button{font-size:11px;padding:3px 12px}
   .sa-sect{position:absolute;top:6px;transform:translateX(-50%);font-size:10px;letter-spacing:.18em;
     color:rgba(255,243,224,.5);text-transform:uppercase;white-space:nowrap}
   #saBottom{flex:1;display:flex;gap:22px;align-items:center;justify-content:center;padding:6px 18px 18px}
@@ -1099,6 +1123,7 @@
     <button class="pill-btn" id="saChallengeBtn">Challenge: off</button>
     <button class="pill-btn" id="saBack">Back</button>
   </div>
+  <div id="saSyncNudge">Tap when the first chord hits &rarr; <button class="pill-btn" id="saSyncNudgeBtn">Sync now</button></div>
   <div id="saHighway">
     <div id="saStrike"></div>
     <div id="saLane"></div>
@@ -1107,6 +1132,7 @@
       <div id="sPpHint">1 sec rewind</div>
     </div>
   </div>
+  <div id="saStrumRow"></div>
   <div id="saBottom">
     <div id="saDiagram"></div>
     <div id="saSide">
@@ -6296,6 +6322,27 @@ function saBuildLane() {
     lane.appendChild(p);
     return p;
   });
+  // build strum pattern chips
+  const srEl = document.getElementById('saStrumRow');
+  if (srEl && sa.parsedRef) {
+    srEl.innerHTML = '';
+    const rawSlots = (sa.parsedRef.strum || 'D DU UD').replace(/[^DUdu ]/g, '').toUpperCase();
+    sa.strumChips = [];
+    for (let i = 0; i < 8; i++) {
+      const s = rawSlots[i] || ' ';
+      if (s === ' ') {
+        const gap = document.createElement('div'); gap.className = 'sa-sc-gap';
+        srEl.appendChild(gap); sa.strumChips.push(null);
+      } else {
+        const dir = s === 'D' ? 'down' : 'up';
+        const chip = document.createElement('div');
+        chip.className = 'sa-sc ' + dir;
+        chip.innerHTML = '<span class="sa-sc-arrow">' + (dir === 'down' ? '↓' : '↑') + '</span>' +
+                         '<span class="sa-sc-lbl">' + (dir === 'down' ? 'D' : 'U') + '</span>';
+        srEl.appendChild(chip); sa.strumChips.push(chip);
+      }
+    }
+  }
 }
 function saRender() {
   if (!sa.on) return;
@@ -6320,9 +6367,25 @@ function saRender() {
     const active = pos >= t0 && pos < t0 + sa.chordDur;
     el.classList.toggle('now', active);
     el.classList.toggle('done', !active && dt < 0 && dt > -sa.chordDur * 1.5);
-    if (active) activeIdx = i;
+    if (active) {
+      activeIdx = i;
+      // karaoke fill: left-to-right fill shows how much of this chord has passed
+      const fillPct = Math.min(100, Math.round((pos - t0) / sa.chordDur * 100));
+      el.style.setProperty('--kfill', fillPct + '%');
+    } else {
+      el.style.removeProperty('--kfill');
+    }
   });
   if (activeIdx >= 0) saShowChord(activeIdx);
+  // strum pattern highlight: light up the current eighth-note slot
+  if (sa.strumChips && !sa.paused && activeIdx >= 0 && sa.bpm > 0) {
+    const spb = 60 / (sa.bpm * sa.speed);
+    const timeInChord = pos - activeIdx * sa.chordDur;
+    const slotIdx = Math.min(7, Math.floor(timeInChord / (spb / 2)));
+    sa.strumChips.forEach((chip, i) => {
+      if (chip) chip.classList.toggle('active', i === slotIdx);
+    });
+  }
   // mic: listen during normal play
   if (!sa.paused && audio.ready && activeIdx >= 0) {
     // always use raw mic (not echo-cancelled) -- echo cancellation strips guitar signal
@@ -6564,10 +6627,14 @@ function saStart(parsed) {
   // so the video reaches offset exactly when the first chord fires
   ytSync.lastCorr = 0;
   const ytDock = document.getElementById('ytDock');
+  const hasSyncOffset = ytSync.active && ytSync.offset !== null;
+  // show sync nudge banner if YT is loaded but no offset has been calibrated
+  const syncNudge = document.getElementById('saSyncNudge');
+  if (syncNudge) syncNudge.style.display = (ytAvail && !hasSyncOffset) ? 'flex' : 'none';
   if (ytDock && ytDock.style.display !== 'none' && yt.player && yt.ready) {
     try {
       const leadIn = sa.startAt - audio.ctx.currentTime;
-      if (ytSync.active && ytSync.offset !== null) {
+      if (hasSyncOffset) {
         yt.player.seekTo(Math.max(0, ytSync.offset - leadIn), true);
       } else {
         const state = yt.player.getPlayerState ? yt.player.getPlayerState() : -1;
@@ -8820,7 +8887,7 @@ document.getElementById('ytHide').addEventListener('click', () => {
   dock.classList.toggle('tucked');
   document.getElementById('ytHide').textContent = dock.classList.contains('tucked') ? 'Show' : 'Hide';
 });
-document.getElementById('ytSyncBtn').addEventListener('click', () => {
+function doYtSync() {
   if (!yt.player || !yt.ready) return;
   let t = 0;
   try { t = yt.player.getCurrentTime ? yt.player.getCurrentTime() : 0; } catch(e) {}
@@ -8831,7 +8898,12 @@ document.getElementById('ytSyncBtn').addEventListener('click', () => {
   const btn = document.getElementById('ytSyncBtn');
   btn.textContent = t.toFixed(1) + 's';
   btn.classList.add('synced');
-});
+  // also dismiss the nudge banner
+  const nudge = document.getElementById('saSyncNudge');
+  if (nudge) nudge.style.display = 'none';
+}
+document.getElementById('ytSyncBtn').addEventListener('click', doYtSync);
+document.getElementById('saSyncNudgeBtn').addEventListener('click', doYtSync);
 
 /* =====================================================
    PICKING TRAINER — a horizontal neck shows where your finger goes
