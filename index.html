@@ -639,9 +639,10 @@
   #saHeard{font-family:'Fredoka',sans-serif;font-weight:600;font-size:16px;color:#8FD694;min-height:22px}
   #saHeard.bad{color:#FF8DA1}
   #saStrike.miss{border-color:#FF5C7A;box-shadow:0 0 28px rgba(255,92,122,.55),inset 0 0 18px rgba(255,92,122,.25)}
-  .sa-conf{position:fixed;width:9px;height:9px;border-radius:50%;pointer-events:none;z-index:220;transform:translate(-50%,-50%)}
-  .sa-cheer{position:fixed;transform:translateX(-50%);font-family:'Fredoka',sans-serif;font-weight:700;
-    font-size:24px;color:#8FD694;pointer-events:none;z-index:221;white-space:nowrap;text-shadow:0 2px 12px rgba(0,0,0,.65)}
+  .sa-conf{position:fixed;width:11px;height:11px;border-radius:50%;pointer-events:none;z-index:220;transform:translate(-50%,-50%)}
+  .sa-cheer{position:fixed;left:50%;top:32%;transform:translateX(-50%);font-family:'Fredoka',sans-serif;font-weight:700;
+    font-size:52px;color:#8FD694;pointer-events:none;z-index:221;white-space:nowrap;
+    text-shadow:0 0 40px rgba(143,214,148,.75),0 2px 14px rgba(0,0,0,.7)}
   .sa-hitflash{position:fixed;z-index:218;border-radius:16px;pointer-events:none;
     background:rgba(143,214,148,.30);border:3px solid #8FD694;box-shadow:0 0 30px rgba(143,214,148,.6);
     animation:saHitPop .45s ease-out forwards}
@@ -6050,10 +6051,14 @@ function saRender() {
   if (activeIdx >= 0) saShowChord(activeIdx);
   // mic: cheer the hits, be honest about the misses
   if (!sa.paused && audio.ready && activeIdx >= 0) {
+    // always use raw mic (not echo-cancelled) -- echo cancellation strips guitar signal
+    const savedUseAlt = audio.useAlt;
+    audio.useAlt = false;
     const heard = detector.update(performance.now());
+    audio.useAlt = savedUseAlt;
     const hint = document.getElementById('saMicHint');
     if (hint) hint.textContent = (detector.lastRms > audio.noiseFloor * 2.5)
-      ? '\u266a mic: hearing you' : '\ud83c\udfa7 mic: listening \u2014 headphones give the cleanest feedback';
+      ? '\u266a mic: hearing you' : '\ud83c\udfa7 mic: listening \u2014 strum clearly and let the note ring';
     const want = sa.seq[activeIdx].base;
     const heardEl = document.getElementById('saHeard');
     if (heard && want) {
@@ -6088,7 +6093,6 @@ function saCelebrate(idx) {
   if (sa.cheerIdx === idx) return;               // one party per chord
   sa.cheerIdx = idx;
   const r = saRingRect();
-  const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
   // green pop of the strike zone itself
   const flash = document.createElement('div');
   flash.className = 'sa-hitflash';
@@ -6096,35 +6100,37 @@ function saCelebrate(idx) {
   flash.style.width = r.width + 'px'; flash.style.height = r.height + 'px';
   document.body.appendChild(flash);
   setTimeout(() => flash.remove(), 500);
-  // confetti burst: tumbling rectangles and dots, drawn above everything so nothing clips
-  for (let i = 0; i < 26; i++) {
+  // confetti bursts from center of screen
+  const cx = window.innerWidth / 2, cy = window.innerHeight * 0.42;
+  for (let i = 0; i < 36; i++) {
     const sp = document.createElement('span');
     sp.className = 'sa-conf';
     sp.style.background = SA_SPARK_COLORS[i % SA_SPARK_COLORS.length];
-    if (i % 3) { sp.style.width = '6px'; sp.style.height = '12px'; sp.style.borderRadius = '2px'; }
+    if (i % 3) { sp.style.width = '7px'; sp.style.height = '14px'; sp.style.borderRadius = '2px'; }
     sp.style.left = cx + 'px'; sp.style.top = cy + 'px';
     document.body.appendChild(sp);
-    const ang = -Math.PI / 2 + (Math.random() - 0.5) * Math.PI * 1.7;   // burst mostly upward
-    const dist = 55 + Math.random() * 95;
-    const dx = Math.cos(ang) * dist, dy = Math.sin(ang) * dist + 70;    // then fall
+    const ang = (Math.random() * Math.PI * 2);
+    const dist = 80 + Math.random() * 160;
+    const dx = Math.cos(ang) * dist, dy = Math.sin(ang) * dist + 60;
     const rot = (Math.random() * 540 - 270).toFixed(0);
     if (sp.animate) sp.animate([
       { transform: 'translate(-50%,-50%) rotate(0deg)', opacity: 1 },
       { transform: 'translate(calc(-50% + ' + dx.toFixed(1) + 'px), calc(-50% + ' + dy.toFixed(1) + 'px)) rotate(' + rot + 'deg)', opacity: 0 }
-    ], { duration: 750 + Math.random() * 350, easing: 'cubic-bezier(.15,.6,.35,1)' });
-    setTimeout(() => sp.remove(), 1200);
+    ], { duration: 850 + Math.random() * 350, easing: 'cubic-bezier(.15,.6,.35,1)' });
+    setTimeout(() => sp.remove(), 1300);
   }
+  // big centered cheer word
   const word = document.createElement('span');
   word.className = 'sa-cheer';
   word.textContent = SA_CHEERS[(sa.cheerN = ((sa.cheerN || 0) + 1)) % SA_CHEERS.length];
-  word.style.left = cx + 'px'; word.style.top = (r.top - 14) + 'px';
   document.body.appendChild(word);
   if (word.animate) word.animate([
-    { transform: 'translateX(-50%) translateY(8px)', opacity: 0 },
-    { transform: 'translateX(-50%) translateY(-6px)', opacity: 1, offset: 0.25 },
-    { transform: 'translateX(-50%) translateY(-30px)', opacity: 0 }
-  ], { duration: 800, easing: 'ease-out' });
-  setTimeout(() => word.remove(), 850);
+    { transform: 'translateX(-50%) scale(.7)', opacity: 0 },
+    { transform: 'translateX(-50%) scale(1.08)', opacity: 1, offset: 0.2 },
+    { transform: 'translateX(-50%) scale(1)', opacity: 1, offset: 0.45 },
+    { transform: 'translateX(-50%) scale(1) translateY(-20px)', opacity: 0 }
+  ], { duration: 900, easing: 'ease-out' });
+  setTimeout(() => word.remove(), 950);
 }
 function saMissFlash() {
   const now = performance.now();
