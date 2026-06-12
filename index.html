@@ -684,6 +684,15 @@
   #saLyric b{color:#FFC54D}
   #strumStage .pill-btn{background:rgba(255,255,255,.1);border:1.5px solid rgba(255,255,255,.3);color:#FFF3E0}
   #strumStage .pill-btn.on{background:rgba(255,197,77,.25);border-color:#FFC54D}
+  #saChallengeBtn.on{background:rgba(255,111,97,.18) !important;border-color:#FF6F61 !important;color:#FF6F61 !important}
+  #saPausePrompt{position:absolute;left:17%;top:50%;transform:translate(-50%,-50%);
+    z-index:25;text-align:center;pointer-events:none}
+  #sPpChord{font-family:'Fredoka',sans-serif;font-size:76px;font-weight:700;
+    color:#FF6F61;line-height:1;animation:sPpPulse .85s ease-in-out infinite}
+  #sPpHint{font-size:11px;color:rgba(255,243,224,.6);letter-spacing:.1em;
+    text-transform:uppercase;margin-top:4px}
+  @keyframes sPpPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.6;transform:scale(1.08)}}
+  #saHighway.wrong-pause #saLane{opacity:.45;transition:opacity .25s}
   #saLoopSummary{position:absolute;bottom:72px;left:50%;transform:translateX(-50%) translateY(16px);
     z-index:20;opacity:0;transition:opacity .4s,transform .4s;pointer-events:none;
     background:rgba(18,12,32,.88);border:1.5px solid rgba(240,169,60,.45);border-radius:16px;
@@ -1077,11 +1086,16 @@
     <label id="saSpeedWrap">speed <input type="range" id="saSpeed" min="40" max="100" step="5" value="100"><span id="saSpeedLbl">100%</span></label>
     <label id="saVolWrap">band <input type="range" id="saVol" min="0" max="100" value="80"></label>
     <button class="pill-btn" id="saPause">Pause</button>
+    <button class="pill-btn" id="saChallengeBtn">Challenge: off</button>
     <button class="pill-btn" id="saBack">Back</button>
   </div>
   <div id="saHighway">
     <div id="saStrike"></div>
     <div id="saLane"></div>
+    <div id="saPausePrompt" style="display:none">
+      <div id="sPpChord"></div>
+      <div id="sPpHint">strum this to continue</div>
+    </div>
   </div>
   <div id="saBottom">
     <div id="saDiagram"></div>
@@ -5967,7 +5981,8 @@ function aiSuggestNext(bases) {
 ===================================================== */
 const sa = { on: false, paused: false, seq: [], events: [], total: 0, chordDur: 0,
   startAt: 0, pausedPos: 0, passBase: 0, idx: 0, timer: null, speed: 1, bpm: 75,
-  gain: null, lastLyric: -1, pills: [], raf: 0, hitT: 0 };
+  gain: null, lastLyric: -1, pills: [], raf: 0, hitT: 0,
+  pauseMode: false, wrongPauseAt: 0, pauseReason: null, ytPausedTime: null };
 
 function saRootMidi(base) {
   const m = base && base.match(/^([A-G][#b]?)/);
@@ -6298,8 +6313,8 @@ function saRender() {
     if (active) activeIdx = i;
   });
   if (activeIdx >= 0) saShowChord(activeIdx);
-  // mic: cheer the hits, be honest about the misses
-  if (!sa.paused && audio.ready && activeIdx >= 0) {
+  // mic: listen during normal play AND during wrong-chord pause (player must strum correctly to resume)
+  if ((!sa.paused || sa.pauseReason === 'wrong') && audio.ready && activeIdx >= 0) {
     // always use raw mic (not echo-cancelled) -- echo cancellation strips guitar signal
     const savedUseAlt = audio.useAlt;
     audio.useAlt = false;
@@ -6320,6 +6335,10 @@ function saRender() {
         if (CHORD_SHAPES[heard]) {
           heardEl.classList.add('bad');
           heardEl.textContent = 'heard ' + heard + ', try ' + sa.seq[activeIdx].display;
+          // challenge mode: wrong known chord pauses everything
+          if (sa.pauseMode && !sa.paused && performance.now() - sa.wrongPauseAt > 2000) {
+            saPauseOnWrong(sa.seq[activeIdx].display);
+          }
         }
       }
     }
@@ -6345,6 +6364,7 @@ function saRingRect() {
 function saCelebrate(idx) {
   if (sa.cheerIdx === idx) return;               // one party per chord
   sa.cheerIdx = idx;
+  if (sa.paused && sa.pauseReason === 'wrong') saResumeFromWrong();
   if (sa.seq[idx]) sa.chordHits[sa.seq[idx].display] = (sa.chordHits[sa.seq[idx].display] || 0) + 1;
   const r = saRingRect();
   // green pop of the strike zone itself
@@ -6402,6 +6422,39 @@ function saMissFlash() {
   document.body.appendChild(box);
   setTimeout(() => box.remove(), 650);
 }
+function saPauseOnWrong(chordName) {
+  if (sa.paused) return;
+  sa.paused = true;
+  sa.pauseReason = 'wrong';
+  sa.wrongPauseAt = performance.now();
+  sa.cheerIdx = -1;   // allow the correct chord to re-trigger saCelebrate
+  sa.pausedPos = saPos() % sa.total;
+  clearTimeout(sa.timer);
+  if (yt.player && yt.player.pauseVideo) try {
+    sa.ytPausedTime = yt.player.getCurrentTime ? yt.player.getCurrentTime() : null;
+    yt.player.pauseVideo();
+  } catch(e) {}
+  document.getElementById('sPpChord').textContent = chordName;
+  document.getElementById('saPausePrompt').style.display = '';
+  document.getElementById('saHighway').classList.add('wrong-pause');
+  saMissFlash();
+}
+function saResumeFromWrong() {
+  if (sa.pauseReason !== 'wrong') return;
+  sa.paused = false;
+  sa.pauseReason = null;
+  sa.startAt = audio.ctx.currentTime - sa.pausedPos;
+  sa.passBase = 0;
+  sa.idx = sa.events.findIndex(e => e.t >= sa.pausedPos - 0.01);
+  if (sa.idx < 0) sa.idx = sa.events.length;
+  if (yt.player && yt.player.playVideo) try {
+    if (sa.ytPausedTime !== null && yt.player.seekTo) yt.player.seekTo(sa.ytPausedTime, true);
+    yt.player.playVideo();
+  } catch(e) {}
+  document.getElementById('saPausePrompt').style.display = 'none';
+  document.getElementById('saHighway').classList.remove('wrong-pause');
+  saScheduler();
+}
 function saShowChord(i) {
   if (sa.shownIdx === i) return;
   sa.shownIdx = i;
@@ -6448,6 +6501,9 @@ function saStart(parsed) {
   document.getElementById('saHeard').innerHTML = '&nbsp;';
   document.getElementById('saHeard').classList.remove('bad');
   sa.cheerIdx = -1; sa.missT = 0;
+  sa.wrongPauseAt = 0; sa.pauseReason = null; sa.ytPausedTime = null;
+  document.getElementById('saPausePrompt').style.display = 'none';
+  document.getElementById('saHighway').classList.remove('wrong-pause');
   document.getElementById('saBuddy').innerHTML = fruitBuddy('strum');
   saBuildLane();
   // per-loop hit tracking
@@ -6509,13 +6565,21 @@ document.getElementById('saPause').addEventListener('click', () => {
     sa.pausedPos = saPos() % sa.total;
     clearTimeout(sa.timer);
     document.getElementById('saPause').textContent = 'Resume';
+    if (yt.player && yt.player.pauseVideo) try { yt.player.pauseVideo(); } catch(e) {}
   } else {
+    // if we were in a wrong-chord pause, clean that state up
+    if (sa.pauseReason === 'wrong') {
+      sa.pauseReason = null;
+      document.getElementById('saPausePrompt').style.display = 'none';
+      document.getElementById('saHighway').classList.remove('wrong-pause');
+    }
     sa.paused = false;
     sa.startAt = audio.ctx.currentTime - sa.pausedPos;
     sa.passBase = 0;
     sa.idx = sa.events.findIndex(e => e.t >= sa.pausedPos - 0.01);
     if (sa.idx < 0) sa.idx = sa.events.length;
     document.getElementById('saPause').textContent = 'Pause';
+    if (yt.player && yt.player.playVideo) try { yt.player.playVideo(); } catch(e) {}
     saScheduler();
   }
 });
@@ -6538,6 +6602,14 @@ document.getElementById('saSpeed').addEventListener('input', (e) => {
 });
 document.getElementById('saVol').addEventListener('input', (e) => {
   if (sa.gain) sa.gain.gain.value = e.target.value / 100;
+});
+document.getElementById('saChallengeBtn').addEventListener('click', () => {
+  sa.pauseMode = !sa.pauseMode;
+  const btn = document.getElementById('saChallengeBtn');
+  btn.textContent = 'Challenge: ' + (sa.pauseMode ? 'on' : 'off');
+  btn.classList.toggle('on', sa.pauseMode);
+  // if turning off while in wrong-chord pause, resume automatically
+  if (!sa.pauseMode && sa.paused && sa.pauseReason === 'wrong') saResumeFromWrong();
 });
 document.getElementById('saBack').addEventListener('click', () => {
   saStop();
