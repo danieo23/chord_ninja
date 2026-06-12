@@ -144,11 +144,24 @@
   .sub-card .tagdot{color:#FF5C7A}
   .sub-card button.secondary{background:rgba(255,255,255,.45);border-color:rgba(20,72,92,.35);color:#14485C}
   #startOverlay #micError{position:absolute;bottom:6px;left:0;right:0;text-align:center}
+  .your-path-section{margin-top:10px;width:100%;max-width:1060px;margin-left:auto;margin-right:auto;padding:0 0 4px}
+  .your-path-label{font-family:'Fredoka',sans-serif;font-weight:600;font-size:12px;
+    color:rgba(20,72,92,.65);letter-spacing:.1em;text-transform:uppercase;margin-bottom:7px;text-align:left;padding:0 2px}
+  .path-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  @media (max-width:480px){ .path-grid{grid-template-columns:1fr} }
+  .path-card{display:flex;flex-direction:column;gap:3px;text-align:left;
+    background:rgba(255,255,255,.38);border:1.5px solid rgba(255,255,255,.62);border-radius:16px;
+    border-left:4px solid var(--acc,#6FCF7C);
+    padding:11px 14px;font-size:15px;color:#14485C;
+    transition:transform .15s,box-shadow .2s;backdrop-filter:blur(8px)}
+  .path-card:hover{transform:translateY(-2px);background:rgba(255,255,255,.55);
+    box-shadow:0 6px 18px -6px var(--acc,#6FCF7C);filter:none}
+  .path-card small{font-family:'Nunito',sans-serif;font-weight:600;font-size:11px;color:rgba(20,72,92,.68)}
 
   /* ---------- home menu (base card layout, dark screens reuse) ---------- */
   .menu-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
   .menu-card{display:flex;flex-direction:row;gap:12px;align-items:flex-start;text-align:left;
-    background:var(--card);color:var(--cream);border:1.5px solid var(--line);border-radius:18px;
+    background:var(--card);color:var(--cream);border:1.5px solid var(--line);border-radius:20px;
     border-top:3px solid var(--acc,var(--honey));
     padding:14px 14px 13px;box-shadow:none;font-size:17px;
     transition:transform .15s,border-color .15s,box-shadow .2s}
@@ -160,6 +173,23 @@
   .menu-card:nth-child(even){transform:rotate(.5deg)}
   .menu-card:hover{transform:rotate(0) translateY(-3px);border-color:var(--acc,var(--honey));filter:none;
     box-shadow:0 8px 24px -8px var(--acc,var(--honey))}
+
+  /* ---------- onboarding overlay ---------- */
+  #onboardingOverlay{z-index:30;flex-direction:column;align-items:center;justify-content:center;
+    padding:28px 18px;background:rgba(20,12,6,.92);backdrop-filter:blur(14px)}
+  .ob-wrap{width:100%;max-width:420px;display:flex;flex-direction:column;align-items:center}
+  .ob-title{font-family:'Fredoka',sans-serif;font-weight:700;font-size:clamp(26px,6vw,36px);
+    color:var(--cream);text-align:center;margin-bottom:6px}
+  .ob-sub{font-size:15px;color:var(--dim);font-weight:600;text-align:center;margin-bottom:28px;line-height:1.5}
+  .ob-cards{display:flex;flex-direction:column;gap:12px;width:100%}
+  .ob-card{display:flex;flex-direction:column;gap:5px;text-align:left;
+    background:var(--card);border:2px solid var(--line);border-radius:20px;border-left:4px solid var(--acc,var(--honey));
+    padding:18px 20px;box-shadow:none;font-size:18px;color:var(--cream);
+    transition:transform .15s,border-color .15s,box-shadow .2s}
+  .ob-card:hover{transform:translateY(-3px);border-color:var(--acc,var(--honey));
+    box-shadow:0 8px 24px -8px var(--acc,var(--honey));filter:none}
+  .ob-card small{font-family:'Nunito',sans-serif;font-weight:600;font-size:13px;color:var(--dim)}
+
   .util-row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
   .home-sub{display:none}
   .home-sub .sub-title{font-family:'Fredoka',sans-serif;font-weight:600;font-size:19px;margin-bottom:14px}
@@ -515,17 +545,35 @@
 
 
   /* ---------- bright theme: library, detail, tuner, mic check ---------- */
-  #learn,#chordDetail,#tuner,#practice{background:rgba(110,190,220,.35);backdrop-filter:blur(4px)}
-  #learn .panel,#chordDetail .panel,#tuner .panel,#practice .panel{
+  #learn,#chordDetail,#tuner,#practice,#chordChangeDrill{background:rgba(110,190,220,.35);backdrop-filter:blur(4px)}
+  #learn .panel,#chordDetail .panel,#tuner .panel,#practice .panel,#chordChangeDrill .panel{
     background:linear-gradient(180deg,#FDF6E5 0%,#F8EBCC 100%);
     border:1.5px solid rgba(255,255,255,.9);color:#14485C;box-shadow:0 24px 60px rgba(20,80,110,.3)}
-  #learn h1,#chordDetail h1,#tuner h1,#practice h1,#detailName{color:#14485C}
-  #learn .tagline,#chordDetail .tagline,#tuner .tagline,#practice .tagline,
-  #learn .hint,#chordDetail .hint,#tuner .hint,#practice .hint{color:rgba(20,72,92,.7)}
-  #learn .pill-btn,#chordDetail .pill-btn,#tuner .pill-btn,#practice .pill-btn{
+  #learn h1,#chordDetail h1,#tuner h1,#practice h1,#chordChangeDrill h1,#detailName{color:#14485C}
+  #learn .tagline,#chordDetail .tagline,#tuner .tagline,#practice .tagline,#chordChangeDrill .tagline,
+  #learn .hint,#chordDetail .hint,#tuner .hint,#practice .hint,#chordChangeDrill .hint{color:rgba(20,72,92,.7)}
+  #learn .pill-btn,#chordDetail .pill-btn,#tuner .pill-btn,#practice .pill-btn,#chordChangeDrill .pill-btn{
     background:rgba(255,255,255,.7);border-color:rgba(20,72,92,.25);color:#14485C}
-  #learn button.secondary,#chordDetail button.secondary,#tuner button.secondary,#practice button.secondary{
+  #learn button.secondary,#chordDetail button.secondary,#tuner button.secondary,#practice button.secondary,#chordChangeDrill button.secondary{
     color:#14485C;border-color:rgba(20,72,92,.3)}
+
+  /* ---------- chord change drill ---------- */
+  #ccdTimer{font-family:'Fredoka',sans-serif;font-weight:700;font-size:72px;color:#14485C;line-height:1;margin-bottom:2px}
+  #ccdTimer.urgent{color:#E8453A}
+  #ccdCount{font-family:'Fredoka',sans-serif;font-weight:600;font-size:22px;color:#B9700E;margin-bottom:10px}
+  #ccdTarget{font-family:'Fredoka',sans-serif;font-weight:700;font-size:58px;color:#14485C;min-height:68px;margin:4px 0 2px;transition:color .12s}
+  #ccdTarget.flash{color:#3FA34D}
+  #ccdDiagram{display:flex;justify-content:center;margin:2px 0 8px}
+  #ccdStatus{font-size:13px;font-weight:700;color:rgba(20,72,92,.6);min-height:18px;margin-bottom:10px}
+  .ccd-pick-row{display:flex;flex-wrap:wrap;gap:7px;justify-content:center;margin:8px 0 16px}
+  .ccd-chip{font-family:'Fredoka',sans-serif;font-weight:600;font-size:15px;padding:7px 14px;border-radius:999px;
+    background:rgba(255,255,255,.6);border:2px solid rgba(20,72,92,.2);color:#14485C;cursor:pointer;
+    transition:all .12s}
+  .ccd-chip:hover{border-color:#D98414;background:rgba(255,255,255,.85);filter:none}
+  .ccd-chip.sel-a{background:rgba(63,163,77,.18);border-color:#3FA34D;color:#1A6B2C}
+  .ccd-chip.sel-b{background:rgba(232,69,58,.15);border-color:#E8453A;color:#C0321E}
+  .ccd-pair{font-family:'Fredoka',sans-serif;font-weight:600;font-size:18px;color:#14485C;margin:4px 0 14px}
+  #ccdBest{font-size:12px;color:rgba(20,72,92,.6);font-weight:700;margin-top:6px}
   #learn .group-title{color:#B9700E}
   #learn .group-note{color:rgba(20,72,92,.6)}
   #learn .chord-card{background:rgba(255,255,255,.78);border-color:rgba(20,72,92,.18)}
@@ -672,9 +720,11 @@
     <button class="secondary" id="sceneBtn" title="Scene: auto follows your clock">Scene: Auto</button>
     <button class="secondary" id="tunerBtn">Tuner</button>
     <button class="secondary" id="practiceBtn">Mic check</button>
+    <button class="secondary" id="levelBtn">Set Level</button>
   </div>
 
   <div id="homeMain" class="home-dock">
+    <div id="yourPathRow"></div>
     <div class="menu-grid">
       <button class="menu-card" data-nav="arcade" style="--acc:#FF5C7A"><svg class="card-icon" viewBox="0 0 40 40"><path d="M 8 22 A 13 13 0 0 0 34 22 Z" fill="#FF5C7A"/><path d="M 8 22 A 13 13 0 0 0 34 22" fill="none" stroke="#3FA34D" stroke-width="3.4"/><line x1="9" y1="22" x2="33" y2="22" stroke="#FFD9E1" stroke-width="1.6"/><ellipse cx="17" cy="28" rx="1.5" ry="2.2" fill="#221406"/><ellipse cx="25" cy="27" rx="1.5" ry="2.2" fill="#221406"/><line x1="6" y1="14" x2="36" y2="6" stroke="#14485C" stroke-width="2.6" stroke-linecap="round"/></svg><span class="card-text">Arcade
         <small>Strum the chord on each fruit before it falls.</small></span></button>
@@ -714,6 +764,64 @@
   </div>
 
   <p id="micError"></p>
+</div>
+
+<!-- ONBOARDING -->
+<div class="overlay" id="onboardingOverlay" style="display:none">
+  <div class="ob-wrap">
+    <div class="ob-title">Welcome to Chord Ninja</div>
+    <p class="ob-sub">How long have you been playing guitar?</p>
+    <div class="ob-cards">
+      <button class="ob-card" data-level="beginner" style="--acc:#6FCF7C">
+        <span>Just Starting Out</span>
+        <small>I can barely hold a G chord</small>
+      </button>
+      <button class="ob-card" data-level="intermediate" style="--acc:#FFC54D">
+        <span>Know a Few Chords</span>
+        <small>Open chords are okay, working on more</small>
+      </button>
+      <button class="ob-card" data-level="advanced" style="--acc:#FF5C7A">
+        <span>Been Playing a While</span>
+        <small>Barre chords? Bring it on.</small>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- CHORD CHANGE DRILL -->
+<div class="overlay" id="chordChangeDrill" style="display:none">
+  <div class="panel" style="max-width:400px;text-align:center">
+    <!-- Setup -->
+    <div id="ccdSetup">
+      <h1 style="font-size:24px;margin-bottom:6px">Chord Change Drill</h1>
+      <p class="tagline" style="margin:0 0 4px">Race the clock. How many switches can you make in 60 seconds?</p>
+      <p style="font-size:12px;font-weight:700;color:rgba(20,72,92,.6);margin-bottom:4px">Pick chord A</p>
+      <div class="ccd-pick-row" id="ccdPickA"></div>
+      <p style="font-size:12px;font-weight:700;color:rgba(20,72,92,.6);margin-bottom:4px">Pick chord B</p>
+      <div class="ccd-pick-row" id="ccdPickB"></div>
+      <div class="ccd-pair" id="ccdPairLabel">Pick two chords above</div>
+      <button id="ccdStartBtn" disabled>Start 60s Drill</button><br>
+      <button class="secondary" id="ccdBackBtn" style="margin-top:10px">Back</button>
+    </div>
+    <!-- Active -->
+    <div id="ccdActive" style="display:none">
+      <div id="ccdTimer">60</div>
+      <div id="ccdCount">0 changes</div>
+      <div id="ccdTarget"></div>
+      <div id="ccdDiagram"></div>
+      <div id="ccdStatus">Get ready...</div>
+    </div>
+    <!-- Results -->
+    <div id="ccdResult" style="display:none">
+      <p class="hud-label" style="letter-spacing:.15em;margin-bottom:6px">Drill complete</p>
+      <div id="ccdResultScore" style="font-family:'Fredoka',sans-serif;font-weight:700;font-size:54px;color:#B9700E;line-height:1.1"></div>
+      <div id="ccdBest"></div>
+      <div style="display:flex;gap:10px;justify-content:center;margin-top:18px;flex-wrap:wrap">
+        <button id="ccdRetryBtn">Try Again</button>
+        <button class="secondary" id="ccdDoneBtn">Back to Menu</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- PRACTICE -->
@@ -1552,8 +1660,10 @@ function sliceFruit(f) {
     });
   }
   game.slashes.push({ x: f.x, y: f.y, ang: cutAng, life: 1 });
+  game.particles.push({ shape: 'ring', x: f.x, y: f.y, vx: 0, vy: 0, r: f.r * 1.1, color: 'rgba(255,248,200,0.85)', life: 1, decay: 2.2 });
   game.floaters.push({ x: f.x, y: f.y - f.r, text: '+' + pts, life: 1, color: '#F0A93C', scale: 1 });
   if (game.combo >= 3) game.floaters.push({ x: f.x, y: f.y - f.r - 28, text: game.combo + 'x', life: 1, color: '#8FD694', scale: 1.3 });
+  if (game.combo >= 5 && game.combo % 5 === 0) comboFlash = { text: 'COMBO x' + game.combo + '!', life: 1.2 };
   if (currentTheme.cheers && Math.random() < (game.combo >= 3 ? 0.5 : 0.18)) {
     const w = currentTheme.cheers[Math.floor(Math.random() * currentTheme.cheers.length)];
     game.floaters.push({ x: f.x, y: f.y - f.r - 54, text: w, life: 1, color: currentTheme.cheerColor, scale: 1.25 });
@@ -1583,6 +1693,7 @@ function missFruit() {
 }
 
 let flashMiss = 0;
+let comboFlash = { text: '', life: 0 };
 
 function onChordDetected(chord) {
   document.getElementById('heard').innerHTML = 'Heard: <b>' + chord + '</b>';
@@ -3355,6 +3466,10 @@ function drawParticle(p) {
     ctx.globalAlpha = a * 0.4;
     ctx.beginPath(); ctx.arc(p.x, p.y, p.r * (2 - p.life), 0, Math.PI * 2);
     ctx.fillStyle = p.color; ctx.fill();
+  } else if (p.shape === 'ring') {
+    ctx.globalAlpha = a * 0.7;
+    ctx.beginPath(); ctx.arc(p.x, p.y, p.r * (1 + (1 - p.life) * 1.2), 0, Math.PI * 2);
+    ctx.strokeStyle = p.color; ctx.lineWidth = 4 * p.life; ctx.stroke();
   } else {
     ctx.globalAlpha = a;
     ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
@@ -3576,6 +3691,24 @@ function loop(now) {
   }
   ctx.restore();
 
+  if (comboFlash.life > 0) {
+    const cf = comboFlash;
+    const fadeIn = Math.min(1, (1.2 - cf.life) * 8);
+    const fadeOut = Math.min(1, cf.life * 2.2);
+    ctx.save();
+    ctx.globalAlpha = Math.min(fadeIn, fadeOut) * 0.92;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    const sc = 1 + (1 - Math.min(1, cf.life * 0.9)) * 0.18;
+    ctx.font = '700 ' + Math.round(sc * 56) + 'px Fredoka, sans-serif';
+    ctx.fillStyle = '#FFD24D';
+    ctx.shadowColor = 'rgba(255,170,0,0.75)';
+    ctx.shadowBlur = 22;
+    ctx.fillText(cf.text, W / 2, H * 0.36);
+    ctx.restore();
+    comboFlash.life -= dt * 1.3;
+    if (comboFlash.life < 0) comboFlash.life = 0;
+  }
   if (flashMiss > 0) {
     ctx.fillStyle = 'rgba(255,59,92,' + (flashMiss * 0.22) + ')';
     ctx.fillRect(0, 0, W, H);
@@ -6067,6 +6200,10 @@ function saStart(parsed) {
   return true;
 }
 function saStop() {
+  if (sa.on && sa.total > 0) {
+    const loops = Math.floor(sa.passBase / sa.total);
+    if (loops > 0) awardXp(loops * 20);
+  }
   audio.useAlt = false;
   detector.saMode = false;
   sa.on = false; sa.paused = false;
@@ -7336,7 +7473,7 @@ document.getElementById('studioBack').addEventListener('click', () => {
   document.getElementById('startOverlay').style.display = 'flex';
 });
 
-const ALL_SCREENS = ['startOverlay','practice','learn','chordDetail','gameover','songSetup','songStage','tuner','studioStage'];
+const ALL_SCREENS = ['startOverlay','practice','learn','chordDetail','gameover','songSetup','songStage','tuner','studioStage','chordChangeDrill'];
 /* ---- island theme: synthesized marimba loop, home screen only ---- */
 const music = { on: false, nextTime: 0, step: 0, timer: null, gain: null, wantsPlay: false, ownCtx: null };
 function musicCtx() {
@@ -7469,6 +7606,7 @@ function startGame() {
   game.fruits = []; game.particles = []; game.slashes = []; game.floaters = [];
   game.stains = []; game.dust = [];
   game.elapsed = 0; game.intensity = 0; game.shake = 0;
+  flashMiss = 0; comboFlash = { text: '', life: 0 };
   lastSpawnedChord = null;
   game.spawnTimer = 2400; game.lastTime = performance.now();
   updateHUD();
@@ -7482,8 +7620,29 @@ function startGame() {
   requestAnimationFrame(loop);
 }
 
+function awardXp(amount) {
+  if (amount <= 0) return;
+  const total = (pLoad('xp', 0) || 0) + amount;
+  pSave('xp', total);
+  updateLevelBtn();
+  if (typeof renderYourPath === 'function') renderYourPath();
+}
+function playerLevelFromXp() {
+  const xp = pLoad('xp', 0) || 0;
+  if (xp >= 1500) return 'advanced';
+  if (xp >= 500) return 'intermediate';
+  return 'beginner';
+}
+function recommendationTier() {
+  const stored = pLoad('playerLevel', null);
+  const fromXp = playerLevelFromXp();
+  if (!stored) return fromXp;
+  const order = ['beginner', 'intermediate', 'advanced'];
+  return order[Math.max(order.indexOf(stored), order.indexOf(fromXp))] || fromXp;
+}
 function endGame() {
   game.running = false;
+  awardXp(Math.max(1, Math.floor(game.score / 10)));
   game.sessionBest = Math.max(game.sessionBest, pLoad('best', 0));
   const isBest = game.score > game.sessionBest;
   game.sessionBest = Math.max(game.sessionBest, game.score);
@@ -9131,6 +9290,247 @@ document.getElementById('tunerBack').addEventListener('click', () => {
   document.getElementById('startOverlay').style.display = 'flex';
   showHome(true);
 });
+
+/* ===== CHORD CHANGE DRILL ===== */
+const CCD_CHORDS = ['A','Am','C','D','Dm','E','Em','G','F','G7','D7','A7'];
+let ccd = { running: false, chordA: null, chordB: null, current: null, count: 0,
+             timer: null, raf: 0, timeLeft: 60 };
+
+function openChordChangeDrill() {
+  for (const id of ALL_SCREENS) {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  }
+  document.getElementById('chordChangeDrill').style.display = 'flex';
+  document.getElementById('hud').style.display = 'none';
+  document.getElementById('heard').style.display = 'none';
+  document.getElementById('hintPanel').style.display = 'none';
+  ccdShowSetup();
+}
+
+function ccdShowSetup() {
+  document.getElementById('ccdSetup').style.display = 'block';
+  document.getElementById('ccdActive').style.display = 'none';
+  document.getElementById('ccdResult').style.display = 'none';
+  ccd.chordA = null; ccd.chordB = null;
+  ccdRenderPicks();
+  ccdUpdateStartBtn();
+}
+
+function ccdRenderPicks() {
+  ['A','B'].forEach(slot => {
+    const row = document.getElementById('ccdPick' + slot);
+    row.innerHTML = CCD_CHORDS.map(c =>
+      '<button class="ccd-chip" data-chord="' + c + '" data-slot="' + slot + '">' + c + '</button>'
+    ).join('');
+    row.querySelectorAll('.ccd-chip').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (slot === 'A') ccd.chordA = btn.dataset.chord;
+        else ccd.chordB = btn.dataset.chord;
+        if (ccd.chordA === ccd.chordB) {
+          if (slot === 'A') ccd.chordB = null;
+          else ccd.chordA = null;
+        }
+        ccdSyncChips();
+        ccdUpdateStartBtn();
+      });
+    });
+  });
+}
+
+function ccdSyncChips() {
+  document.querySelectorAll('.ccd-chip').forEach(btn => {
+    const c = btn.dataset.chord, s = btn.dataset.slot;
+    btn.classList.toggle('sel-a', s === 'A' && c === ccd.chordA);
+    btn.classList.toggle('sel-b', s === 'B' && c === ccd.chordB);
+  });
+  const lbl = document.getElementById('ccdPairLabel');
+  if (ccd.chordA && ccd.chordB) lbl.textContent = ccd.chordA + '  to  ' + ccd.chordB;
+  else if (ccd.chordA) lbl.textContent = ccd.chordA + '  to  ?';
+  else if (ccd.chordB) lbl.textContent = '?  to  ' + ccd.chordB;
+  else lbl.textContent = 'Pick two chords above';
+}
+
+function ccdUpdateStartBtn() {
+  document.getElementById('ccdStartBtn').disabled = !(ccd.chordA && ccd.chordB);
+}
+
+async function startChordDrill() {
+  if (!(await ensureAudio())) return;
+  detector.pool = [ccd.chordA, ccd.chordB];
+  ccd.count = 0; ccd.timeLeft = 60; ccd.running = true;
+  ccd.current = ccd.chordA;
+  document.getElementById('ccdSetup').style.display = 'none';
+  document.getElementById('ccdActive').style.display = 'block';
+  ccdUpdateActive();
+  ccd.timer = setInterval(() => {
+    ccd.timeLeft--;
+    const timerEl = document.getElementById('ccdTimer');
+    timerEl.textContent = ccd.timeLeft;
+    timerEl.classList.toggle('urgent', ccd.timeLeft <= 10);
+    if (ccd.timeLeft <= 0) endChordDrill();
+  }, 1000);
+  ccd.raf = requestAnimationFrame(chordDrillLoop);
+}
+
+function ccdUpdateActive() {
+  const tgt = document.getElementById('ccdTarget');
+  tgt.textContent = ccd.current || '';
+  tgt.className = '';
+  const diag = document.getElementById('ccdDiagram');
+  diag.innerHTML = ccd.current && typeof chordSVG === 'function' ? chordSVG(ccd.current, 140) : '';
+  document.getElementById('ccdCount').textContent = ccd.count + ' change' + (ccd.count !== 1 ? 's' : '');
+  document.getElementById('ccdStatus').textContent = 'Play ' + (ccd.current || '') + ' on your guitar';
+}
+
+let ccdCooldown = false;
+function chordDrillLoop() {
+  if (!ccd.running) return;
+  const chord = detector.update(performance.now());
+  if (chord && chord === ccd.current && !ccdCooldown) {
+    const next = ccd.current === ccd.chordA ? ccd.chordB : ccd.chordA;
+    ccd.count++;
+    ccd.current = next;
+    ccdCooldown = true;
+    const tgt = document.getElementById('ccdTarget');
+    tgt.classList.add('flash');
+    playSlice();
+    setTimeout(() => {
+      tgt.classList.remove('flash');
+      ccdCooldown = false;
+      ccdUpdateActive();
+    }, 350);
+    document.getElementById('ccdCount').textContent = ccd.count + ' change' + (ccd.count !== 1 ? 's' : '');
+  }
+  ccd.raf = requestAnimationFrame(chordDrillLoop);
+}
+
+function endChordDrill() {
+  ccd.running = false;
+  clearInterval(ccd.timer);
+  cancelAnimationFrame(ccd.raf);
+  detector.pool = null;
+  awardXp(ccd.count * 2);
+  const bestKey = 'ccdBest_' + ccd.chordA + '_' + ccd.chordB;
+  const prev = pLoad(bestKey, 0) || 0;
+  const isNew = ccd.count > prev;
+  if (isNew) pSave(bestKey, ccd.count);
+  document.getElementById('ccdActive').style.display = 'none';
+  document.getElementById('ccdResult').style.display = 'block';
+  document.getElementById('ccdResultScore').textContent = ccd.count + ' changes';
+  document.getElementById('ccdBest').textContent = isNew
+    ? 'New personal best!'
+    : 'Best: ' + prev + ' changes';
+  document.getElementById('ccdBest').style.color = isNew ? '#3FA34D' : 'rgba(20,72,92,.6)';
+}
+
+document.getElementById('ccdStartBtn').addEventListener('click', startChordDrill);
+document.getElementById('ccdRetryBtn').addEventListener('click', () => ccdShowSetup());
+document.getElementById('ccdBackBtn').addEventListener('click', () => {
+  ccd.running = false; clearInterval(ccd.timer); cancelAnimationFrame(ccd.raf);
+  detector.pool = null;
+  document.getElementById('chordChangeDrill').style.display = 'none';
+  document.getElementById('startOverlay').style.display = 'flex';
+  showHome(true);
+});
+document.getElementById('ccdDoneBtn').addEventListener('click', () => {
+  ccd.running = false; clearInterval(ccd.timer); cancelAnimationFrame(ccd.raf);
+  detector.pool = null;
+  document.getElementById('chordChangeDrill').style.display = 'none';
+  document.getElementById('startOverlay').style.display = 'flex';
+  showHome(true);
+});
+/* ===== end chord change drill ===== */
+
+// your path recommendations
+const PATH_CARDS = {
+  beginner: [
+    { label: 'Practice Open Chords', desc: 'Slow pace, diagrams on screen', acc: '#6FCF7C', action: 'track:open' },
+    { label: 'Try an Easy Song', desc: 'Play along with simple chords', acc: '#FFC54D', action: 'songSetup' },
+  ],
+  intermediate: [
+    { label: 'Level Up: 7th Chords', desc: 'Add flavor to your open chords', acc: '#FFC54D', action: 'track:seventh' },
+    { label: 'Chord Change Drill', desc: 'Race the clock on chord switches', acc: '#5EC8E5', action: 'chordChangeDrill' },
+  ],
+  advanced: [
+    { label: 'Barre Chord Challenge', desc: 'F, Bm, Gm -- the hard stuff', acc: '#FF5C7A', action: 'track:barre' },
+    { label: 'Speed Drill', desc: 'Fastest chord change streak you can make', acc: '#FF5C7A', action: 'chordChangeDrill' },
+  ],
+};
+function renderYourPath() {
+  const row = document.getElementById('yourPathRow');
+  if (!row) return;
+  const tier = recommendationTier();
+  const cards = PATH_CARDS[tier];
+  if (!cards) { row.innerHTML = ''; return; }
+  row.innerHTML = '<div class="your-path-section"><div class="your-path-label">Your Path</div>' +
+    '<div class="path-grid">' +
+    cards.map(c =>
+      '<button class="path-card" data-action="' + c.action + '" style="--acc:' + c.acc + '">' +
+      '<span>' + c.label + '</span>' +
+      '<small>' + c.desc + '</small>' +
+      '</button>'
+    ).join('') +
+    '</div></div>';
+  row.querySelectorAll('.path-card').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const action = btn.dataset.action;
+      if (action === 'songSetup') {
+        document.getElementById('startOverlay').style.display = 'none';
+        document.getElementById('songSetup').style.display = 'flex';
+        return;
+      }
+      if (action === 'chordChangeDrill') {
+        if (typeof openChordChangeDrill === 'function') openChordChangeDrill();
+        return;
+      }
+      if (action.startsWith('track:')) {
+        const trackKey = action.slice(6);
+        if (await ensureAudio()) {
+          currentMode = TRACKS[trackKey];
+          currentPool = currentMode.pool;
+          detector.pool = currentMode.pool;
+          schoolMode = true;
+          homeNav('main');
+          startGame();
+        }
+      }
+    });
+  });
+}
+
+// onboarding
+function showOnboarding() {
+  document.getElementById('onboardingOverlay').style.display = 'flex';
+}
+function hideOnboarding() {
+  document.getElementById('onboardingOverlay').style.display = 'none';
+}
+function setPlayerLevel(level) {
+  pSave('playerLevel', level);
+  if (pLoad('xp', null) === null) pSave('xp', 0);
+  updateLevelBtn();
+  hideOnboarding();
+  if (typeof renderYourPath === 'function') renderYourPath();
+}
+function updateLevelBtn() {
+  const lvl = pLoad('playerLevel', null);
+  const xp = pLoad('xp', 0) || 0;
+  const lbl = { beginner: 'Beginner', intermediate: 'Intermediate', advanced: 'Advanced' };
+  const b = document.getElementById('levelBtn');
+  if (!b) return;
+  if (!lvl) { b.textContent = 'Set Level'; return; }
+  const xpThresholds = [0,50,120,240,400,600,900,1300,1800,2500,3300,4200,5200,6400,7800,9400,11200,13200,15500,18000];
+  const lvNum = xpThresholds.findIndex(t => xp < t);
+  const lvLabel = lvNum < 0 ? 20 : Math.max(1, lvNum);
+  b.textContent = (lbl[lvl] || lvl) + ' · Lv ' + lvLabel;
+}
+document.querySelectorAll('.ob-card[data-level]').forEach(btn =>
+  btn.addEventListener('click', () => setPlayerLevel(btn.dataset.level)));
+document.getElementById('levelBtn').addEventListener('click', showOnboarding);
+updateLevelBtn();
+renderYourPath();
+if (!pLoad('playerLevel', null)) showOnboarding();
 
 // the menu opens over a living scene
 ambientStart();
