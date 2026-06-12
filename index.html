@@ -124,6 +124,11 @@
     padding-top:max(4px,env(safe-area-inset-top));gap:8px}
   .home-header .home-top{grid-column:2;text-align:center;pointer-events:none}
   .home-utils{grid-column:3;display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;align-self:flex-start}
+  #gearPanel{position:absolute;right:0;top:calc(100% + 6px);z-index:200;
+    background:#2a1d0e;border:1.5px solid rgba(240,169,60,.35);border-radius:14px;
+    padding:8px;display:flex;flex-direction:column;gap:5px;min-width:150px;
+    box-shadow:0 8px 24px rgba(0,0,0,.55)}
+  #gearPanel .secondary{padding:7px 14px;font-size:13px}
   #startOverlay button.secondary{background:rgba(255,255,255,.42);border:1.5px solid rgba(255,255,255,.7);
     color:#14485C;backdrop-filter:blur(6px);font-weight:600}
   #startOverlay button.secondary:hover{background:rgba(255,255,255,.6);border-color:#fff}
@@ -223,6 +228,11 @@
 
   /* ---------- learn library ---------- */
   .learn-panel{max-height:88vh;overflow-y:auto;max-width:620px}
+  /* learn + songSetup: full-screen panels */
+  #learn,#songSetup{align-items:stretch}
+  #learn .panel,#songSetup .panel{max-width:100%;width:100%;border-radius:0;
+    box-sizing:border-box;max-height:unset;height:100%}
+  #learn .learn-panel{max-height:unset;max-width:100%;height:100%}
   .group-title{font-family:'Fredoka',sans-serif;font-weight:600;font-size:16px;color:var(--honey);
     text-align:left;margin:20px 0 2px}
   .group-note{font-size:12px;color:var(--dim);text-align:left;margin-bottom:10px;font-weight:600}
@@ -575,6 +585,8 @@
   .ccd-chip:hover{border-color:#D98414;background:rgba(255,255,255,.85);filter:none}
   .ccd-chip.sel-a{background:rgba(63,163,77,.18);border-color:#3FA34D;color:#1A6B2C}
   .ccd-chip.sel-b{background:rgba(232,69,58,.15);border-color:#E8453A;color:#C0321E}
+  .ccd-chip.sel-c{background:rgba(94,200,229,.18);border-color:#5EC8E5;color:#0B617A}
+  .ccd-chip.sel-d{background:rgba(200,130,70,.18);border-color:#C88246;color:#7A4B1A}
   .ccd-pair{font-family:'Fredoka',sans-serif;font-weight:600;font-size:18px;color:#14485C;margin:4px 0 14px}
   #ccdBest{font-size:12px;color:rgba(20,72,92,.6);font-weight:700;margin-top:6px}
   #learn .group-title{color:#B9700E}
@@ -661,6 +673,16 @@
   #saLyric b{color:#FFC54D}
   #strumStage .pill-btn{background:rgba(255,255,255,.1);border:1.5px solid rgba(255,255,255,.3);color:#FFF3E0}
   #strumStage .pill-btn.on{background:rgba(255,197,77,.25);border-color:#FFC54D}
+  #saLoopSummary{position:absolute;bottom:72px;left:50%;transform:translateX(-50%) translateY(16px);
+    z-index:20;opacity:0;transition:opacity .4s,transform .4s;pointer-events:none;
+    background:rgba(18,12,32,.88);border:1.5px solid rgba(240,169,60,.45);border-radius:16px;
+    padding:10px 16px;text-align:center;min-width:200px}
+  #saLoopSummary.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .sasum-title{font:700 10px 'Fredoka',sans-serif;letter-spacing:.16em;color:rgba(255,243,224,.5);margin-bottom:7px}
+  .sasum-chords{display:flex;flex-wrap:wrap;gap:5px;justify-content:center}
+  .sasum-pill{font:700 14px 'Fredoka',sans-serif;padding:3px 11px;border-radius:12px}
+  .sasum-pill.hit{background:rgba(143,214,148,.18);color:#8FD694}
+  .sasum-pill.miss{background:rgba(255,92,122,.15);color:#FF8DA1}
   #strumGoBtn{margin-left:8px}
   /* ---- AI band panel ---- */
   #aiPanel{position:absolute;inset:0;z-index:5;background:rgba(10,10,14,.6);backdrop-filter:blur(3px);
@@ -693,6 +715,15 @@
   .ai-sug b{font:700 17px 'Fredoka',sans-serif;color:#FFC54D;min-width:52px}
   .ai-sug span{flex:1;font-size:13px;color:rgba(236,236,240,.7)}
   #aiPanel .pill-btn{background:rgba(255,255,255,.08);border:1.5px solid rgba(255,255,255,.25);color:#ECECF0}
+  #levelUpToast{position:fixed;top:64px;left:50%;transform:translateX(-50%) translateY(-20px);
+    z-index:9999;pointer-events:none;opacity:0;transition:opacity .35s,transform .35s;display:none}
+  #levelUpToast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .lvl-toast-inner{background:linear-gradient(135deg,#2c1f0e,#3d2b10);border:2px solid #F0A93C;
+    border-radius:18px;padding:14px 22px;display:flex;align-items:center;gap:14px;white-space:nowrap;
+    box-shadow:0 6px 28px rgba(0,0,0,.55),0 0 0 1px rgba(240,169,60,.18)}
+  .lvl-toast-star{font-size:30px;line-height:1}
+  .lvl-toast-title{font:700 22px 'Fredoka',sans-serif;color:#F0A93C}
+  .lvl-toast-sub{font-size:13px;color:rgba(255,243,224,.68);margin-top:1px}
 </style>
 </head>
 <body>
@@ -721,11 +752,17 @@
       <p class="tagline">Your guitar is the controller. The mic hears your chords.</p>
     </div>
     <div class="home-utils">
-      <button class="secondary" id="musicBtn" title="Island theme on the home screen">Music: On</button>
-      <button class="secondary" id="sceneBtn" title="Scene: auto follows your clock">Scene: Auto</button>
-      <button class="secondary" id="tunerBtn">Tuner</button>
-      <button class="secondary" id="practiceBtn">Mic check</button>
-      <button class="secondary" id="levelBtn">Set Level</button>
+      <button class="secondary" id="quickPlayBtn" title="Jump back in">Quick Play</button>
+      <div id="gearWrap" style="position:relative">
+        <button class="secondary" id="gearBtn" title="Settings" style="padding:8px 13px;font-size:17px">&#9881;</button>
+        <div id="gearPanel" style="display:none">
+          <button class="secondary" id="musicBtn" style="width:100%;text-align:left">Music: On</button>
+          <button class="secondary" id="sceneBtn" style="width:100%;text-align:left">Scene: Auto</button>
+          <button class="secondary" id="tunerBtn" style="width:100%;text-align:left">Tuner</button>
+          <button class="secondary" id="practiceBtn" style="width:100%;text-align:left">Mic check</button>
+          <button class="secondary" id="levelBtn" style="width:100%;text-align:left">Set Level</button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -759,11 +796,11 @@
         <button class="mode-btn" data-mode="medium"><span><span class="tagdot">&#9679;&#9679;</span> Medium</span><small>Real gravity, up to 3 targets at once. 1.5x points.</small></button>
         <button class="mode-btn" data-mode="hard"><span><span class="tagdot">&#9679;&#9679;&#9679;</span> Hard</span><small>Fast drops, 4 targets airborne. 2x points.</small></button>
       </div>
-      <p class="sub-title" style="font-size:14px;margin:4px 0 10px;opacity:.8">Or train a chord set &mdash; slow pace, diagrams on screen</p>
+      <p class="sub-title" style="font-size:14px;margin:4px 0 10px;opacity:.8">Or train a chord set, slow pace, diagrams on screen</p>
       <div class="mode-row">
-        <button class="mode-btn" data-track="open"><span>Open Chords</span><small>A &middot; Am &middot; C &middot; D &middot; Dm &middot; E &middot; Em &middot; G &mdash; the foundation.</small></button>
+        <button class="mode-btn" data-track="open"><span>Open Chords</span><small>A &middot; Am &middot; C &middot; D &middot; Dm &middot; E &middot; Em &middot; G, the foundation.</small></button>
         <button class="mode-btn" data-track="seventh"><span>Seventh Chords</span><small>A7 B7 C7 D7 E7 G7 mixed in with their plain versions.</small></button>
-        <button class="mode-btn" data-track="barre"><span>Barre Chords</span><small>F &middot; B &middot; Bb &middot; Bm &middot; F#m &middot; Gm &mdash; the boss level.</small></button>
+        <button class="mode-btn" data-track="barre"><span>Barre Chords</span><small>F &middot; B &middot; Bb &middot; Bm &middot; F#m &middot; Gm, the boss level.</small></button>
       </div>
       <button class="secondary" data-nav="main">Back</button>
     </div>
@@ -801,13 +838,24 @@
     <div id="ccdSetup">
       <h1 style="font-size:24px;margin-bottom:6px">Chord Change Drill</h1>
       <p class="tagline" style="margin:0 0 4px">Race the clock. How many switches can you make in 60 seconds?</p>
-      <p style="font-size:12px;font-weight:700;color:rgba(20,72,92,.6);margin-bottom:4px">Pick chord A</p>
+      <p style="font-size:12px;font-weight:700;color:rgba(20,72,92,.6);margin-bottom:4px">1st chord</p>
       <div class="ccd-pick-row" id="ccdPickA"></div>
-      <p style="font-size:12px;font-weight:700;color:rgba(20,72,92,.6);margin-bottom:4px">Pick chord B</p>
+      <p style="font-size:12px;font-weight:700;color:rgba(20,72,92,.6);margin-bottom:4px">2nd chord</p>
       <div class="ccd-pick-row" id="ccdPickB"></div>
+      <div id="ccdPickCWrap" style="display:none">
+        <p style="font-size:12px;font-weight:700;color:rgba(20,72,92,.6);margin-bottom:4px">3rd chord</p>
+        <div class="ccd-pick-row" id="ccdPickC"></div>
+      </div>
+      <div id="ccdPickDWrap" style="display:none">
+        <p style="font-size:12px;font-weight:700;color:rgba(20,72,92,.6);margin-bottom:4px">4th chord</p>
+        <div class="ccd-pick-row" id="ccdPickD"></div>
+      </div>
       <div class="ccd-pair" id="ccdPairLabel">Pick two chords above</div>
-      <button id="ccdStartBtn" disabled>Start 60s Drill</button><br>
-      <button class="secondary" id="ccdBackBtn" style="margin-top:10px">Back</button>
+      <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+        <button id="ccdAddSlotBtn" class="secondary" style="font-size:13px;padding:6px 14px" disabled>+ Add chord to chain</button>
+        <button id="ccdStartBtn" disabled>Start 60s Drill</button>
+      </div>
+      <br><button class="secondary" id="ccdBackBtn" style="margin-top:2px">Back</button>
     </div>
     <!-- Active -->
     <div id="ccdActive" style="display:none">
@@ -834,7 +882,7 @@
 <div class="overlay" id="practice">
   <div class="panel">
     <p class="hud-label" style="letter-spacing:.18em">Detector hears</p>
-    <div id="bigChord">&mdash;</div>
+    <div id="bigChord">--</div>
     <div id="chromaBars"></div>
     <button id="practiceStart">Pick a mode &amp; play</button><br>
     <button class="secondary" id="practiceBack">Back</button>
@@ -878,17 +926,17 @@
 <div class="overlay" id="songSetup" style="display:none">
   <div class="panel pa-panel">
     <h1 style="font-size:26px">LEARN A SONG</h1>
-    <p class="tagline" style="margin-bottom:8px">Pick a classic or paste any chord chart.</p>
+    <p class="tagline" style="margin-bottom:8px">Pick a song from the library to start.</p>
     <div id="songLib"></div>
-    <textarea id="songText" spellcheck="false" style="height:220px" class=""></textarea>
-    <div class="setup-row">
-      <button class="pill-btn" id="findLyricsBtn">Find this chart with lyrics</button>
-      <span class="hint" style="margin:0">paste the full chart in the box &mdash; lyrics show under each chord</span>
+    <div id="chartInputWrap" style="display:none">
+      <textarea id="songText" spellcheck="false" style="height:180px" class=""></textarea>
+      <div class="setup-row">
+        <button class="pill-btn" id="findLyricsBtn">Find chart with lyrics</button>
+        <span class="hint" style="margin:0">paste the full chart above, lyrics show under each chord</span>
+      </div>
     </div>
-    <div class="setup-row">
-      <button class="pill-btn" id="ytFindBtn">Find the track on YouTube</button>
-      <input id="ytUrl" placeholder="paste the YouTube link here to play along (optional)">
-    </div>
+    <button class="secondary" id="customChartToggle" style="font-size:12px;padding:6px 14px;margin-bottom:6px">+ Paste custom chart</button>
+    <input type="hidden" id="ytUrl" value="">
     <div class="setup-row">
       <label class="opt-check"><input type="checkbox" id="easyMode">
         <span>Beginner chords <small>(F&rarr;Fmaj7, Bm&rarr;Bm7, B&rarr;B7)</small></span></label>
@@ -897,7 +945,7 @@
     </div>
     <div style="display:flex;gap:10px;justify-content:center;margin-top:14px">
       <button id="songLoadBtn">Start learning</button>
-      <button id="strumGoBtn" class="secondary" title="No score, no fail \u2014 a synth band plays the chart and you strum along">Strum along &#9654;</button>
+      <button id="strumGoBtn" class="secondary" title="No score, no fail. A synth band plays the chart and you strum along">Strum along &#9654;</button>
       <button class="secondary" id="songSetupBack" style="margin-top:0">Back</button>
     </div>
     <p id="songError" style="color:var(--coral);font-size:13px;margin-top:10px;display:none"></p>
@@ -920,7 +968,7 @@
       <button class="pill-btn" id="songExit">Back</button>
     </div>
   </div>
-  <div id="capoBanner" style="display:none">Capo song &mdash; clamp your capo on the fret shown before you strum</div>
+  <div id="capoBanner" style="display:none">Capo song. Clamp your capo on the fret shown before you strum.</div>
   <div id="pickTrainer" style="display:none">
     <div id="pkPart" style="display:none"></div>
     <div id="pkHold"></div>
@@ -928,7 +976,7 @@
     <div id="pkChips"></div>
     <div id="pkMeta"><span id="pkLoops">Loops: 0</span>
       <button class="pill-btn metro-sm" id="pkViewBtn" title="Flip which string is drawn on top"></button>
-      <span class="hint" style="margin:0">pick the glowing string &mdash; or tap the next number to skip</span></div>
+      <span class="hint" style="margin:0">pick the glowing string, or tap the next number to skip</span></div>
     <div id="pkBuddy"></div>
   </div>
   <div id="ytDock" style="display:none">
@@ -958,8 +1006,8 @@
     <div id="nowZone">
       <div id="nowDiagram"></div>
       <div id="nowMain">
-        <div id="nowChord">&mdash;</div>
-        <div id="nowNext">next: <b>&mdash;</b></div>
+        <div id="nowChord">--</div>
+        <div id="nowNext">next: <b>--</b></div>
       </div>
       <div id="metroBox">
         <div class="hud-label" style="letter-spacing:.16em;margin-bottom:4px">Metronome</div>
@@ -989,8 +1037,8 @@
 <!-- TUNER -->
 <div class="overlay" id="tuner" style="display:none">
   <div class="panel" style="max-width:420px">
-    <p class="hud-label" style="letter-spacing:.2em">Guitar Tuner &mdash; standard E A D G B E</p>
-    <div id="tunNote">&mdash;</div>
+    <p class="hud-label" style="letter-spacing:.2em">Guitar Tuner. Standard E A D G B E</p>
+    <div id="tunNote">--</div>
     <div id="tunFreq">play a string</div>
     <div id="tunMeter">
       <div class="tun-tick t25l"></div><div class="tun-tick tc"></div><div class="tun-tick t25r"></div>
@@ -1032,6 +1080,10 @@
       <div id="saLyric">&nbsp;</div>
       <div id="saBuddy"></div>
     </div>
+  </div>
+  <div id="saLoopSummary" style="display:none">
+    <div class="sasum-title">LOOP COMPLETE</div>
+    <div class="sasum-chords" id="saLoopChords"></div>
   </div>
 </div>
 
@@ -1345,23 +1397,32 @@ const detector = {
   update(now) {
     const rms = getRMS();
     this.lastRms = rms;
-    // onset tracking: spike vs recent average (gentle threshold so soft strums count)
     const hist = this.rmsHist;
     const avg = hist.length ? hist.reduce((a, b) => a + b, 0) / hist.length : 0;
-    if (rms > Math.max(audio.noiseFloor * 2.6, avg * 1.35)) this.lastOnset = now;
+    if (this.saMode) {
+      // slow-tracking EMA baseline captures the backing track's sustained level.
+      // a guitar strum must spike 65% above this baseline to count as an onset.
+      // backing-track drum hits raise the baseline gradually, so they don't trigger onsets.
+      this.saBaseline = this.saBaseline ? this.saBaseline * 0.94 + rms * 0.06 : rms;
+      if (rms > Math.max(audio.noiseFloor * 3, this.saBaseline * 1.65)) this.lastOnset = now;
+    } else {
+      if (rms > Math.max(audio.noiseFloor * 2.6, avg * 1.35)) this.lastOnset = now;
+    }
     hist.push(rms); if (hist.length > 12) hist.shift();
 
     if (rms < audio.noiseFloor * 2.5) { this.candidate = null; this.count = 0; this.lastChroma = null; return null; }
     const an = analyzeSpectrum();
     this.lastChroma = an.chroma;
-    // voice / hum guard
-    const minPeak = this.saMode ? 0.42 : this.MIN_PEAKINESS;
+    // voice / hum guard -- slightly higher peakiness in saMode so room-reflected
+    // backing track (less peaky spectrum) doesn't pass the guard
+    const minPeak = this.saMode ? 0.46 : this.MIN_PEAKINESS;
     if (an.lowClassCount < this.MIN_LOW_CLASSES || an.peakiness < minPeak) {
       this.candidate = null; this.count = 0; return null;
     }
-    // the onset gate assumes spikes out of silence; with a band playing the
-    // rolling average tracks the room, so strum-along skips it
-    if (!this.saMode && now - this.lastOnset > this.ONSET_WINDOW) { this.count = 0; return null; }
+    // onset gate: in saMode use 4500ms window so slow songs (56 BPM) work fine;
+    // never bypass entirely -- that's what caused backing-track false positives
+    const onsetWin = this.saMode ? 4500 : this.ONSET_WINDOW;
+    if (now - this.lastOnset > onsetWin) { this.count = 0; return null; }
     const r = classify(an.chroma, this.pool);
     if (r.sim < this.MIN_SIM || r.margin < this.MIN_MARGIN) { this.candidate = null; this.count = 0; return null; }
     if (r.name === this.candidate) this.count++;
@@ -1441,7 +1502,7 @@ const CHORD_SHAPES = {
   'Bb' : { frets:[-1,1,3,3,3,1],  fingers:[0,1,2,3,4,1], base:1, barre:{finger:1,fret:1,from:1,to:5}, tip:'A shape barred at fret 1. Skip the low E.' },
   'B'  : { frets:[-1,2,4,4,4,2],  fingers:[0,1,2,3,4,1], base:1, barre:{finger:1,fret:2,from:1,to:5}, tip:'Same as Bb, one fret up. Some players barre frets 4 with the ring finger.' },
   'Bm' : { frets:[-1,2,4,4,3,2],  fingers:[0,1,3,4,2,1], base:1, barre:{finger:1,fret:2,from:1,to:5}, tip:'Am shape barred at fret 2. The most common \u201cfirst barre\u201d after F.' },
-  'F#m': { frets:[2,4,4,2,2,2],   fingers:[1,3,4,1,1,1], base:1, barre:{finger:1,fret:2,from:0,to:5}, tip:'Em shape barred at fret 2. Easier than F \u2014 start barres here.' },
+  'F#m': { frets:[2,4,4,2,2,2],   fingers:[1,3,4,1,1,1], base:1, barre:{finger:1,fret:2,from:0,to:5}, tip:'Em shape barred at fret 2. Easier than F, start barres here.' },
   'Gm' : { frets:[3,5,5,3,3,3],   fingers:[1,3,4,1,1,1], base:1, barre:{finger:1,fret:3,from:0,to:5}, tip:'Same grip as F#m, one fret higher.' },
   'F#' : { frets:[2,4,4,3,2,2],   fingers:[1,3,4,2,1,1], base:1, barre:{finger:1,fret:2,from:0,to:5}, tip:'E-major shape barred at fret 2. Same grip as F, one fret up.' },
   'Cm' : { frets:[-1,3,5,5,4,3],  fingers:[0,1,3,4,2,1], base:1, barre:{finger:1,fret:3,from:1,to:5}, tip:'Am shape barred at fret 3. Same grip as Bm, one fret up.' },
@@ -1460,9 +1521,9 @@ const CHORD_SHAPES = {
 };
 
 const CHORD_GROUPS = [
-  { title:'Open chords',    note:'The shapes you know \u2014 reference + tune-up',           chords:['A','Am','C','D','Dm','E','Em','G','Cmaj7'] },
+  { title:'Open chords',    note:'The shapes you know. Reference + tune-up.',           chords:['A','Am','C','D','Dm','E','Em','G','Cmaj7'] },
   { title:'Seventh chords', note:'Small tweaks to open shapes, big new sound',               chords:['A7','B7','C7','D7','E7','G7','Cmaj7'] },
-  { title:'Color chords',   note:'Sus, add9, maj7 \u2014 the flavor every pop song leans on', chords:['Cadd9','Em7','Am7','Asus2','Dsus4','Esus4','Dm7','Dmaj7','Amaj7','Gmaj7'] },
+  { title:'Color chords',   note:'Sus, add9, maj7. The flavor every pop song leans on.', chords:['Cadd9','Em7','Am7','Asus2','Dsus4','Esus4','Dm7','Dmaj7','Amaj7','Gmaj7'] },
   { title:'Barre chords',   note:'One finger across all strings. Hard, then suddenly easy',  chords:['F#m','F','Bm','Bb','B','Gm','F#','Cm'] },
 ];
 
@@ -1741,7 +1802,7 @@ function onChordDetected(chord) {
         playSlice();
         hit = true;
         if (f.seqIdx >= f.seq.length) { bombSuccess(f); return; }
-        return; // consume detection while in sequence
+        break; // fall through to slice any matching normal fruits
       } else if (f.seqIdx > 0) {
         bombExplode(f); return; // wrong chord while committed = kaboom
       }
@@ -1811,7 +1872,7 @@ function updateHUD(scored) {
     scoreEl.classList.remove('pop'); void scoreEl.offsetWidth; scoreEl.classList.add('pop');
     setTimeout(() => scoreEl.classList.remove('pop'), 110);
   }
-  document.getElementById('lives').innerHTML = '\u2665'.repeat(Math.max(0, game.lives)) || '\u2014';
+  document.getElementById('lives').innerHTML = '\u2665'.repeat(Math.max(0, game.lives)) || '0';
   const comboEl = document.getElementById('combo');
   const txt = game.combo >= 2 ? game.combo + 'x combo' : '';
   if (txt && txt !== comboEl.textContent) {
@@ -3676,6 +3737,16 @@ function loop(now) {
   // continuous difficulty: survival time ramps it up, streak pushes it further,
   // losing your combo gives you a breather
   game.elapsed += dt;
+  // easy mode: progressively unlock chords over time
+  if (game.easyUnlockIdx >= 2 && game.easyUnlockIdx < EASY_PROGRESSION.length) {
+    if (game.elapsed >= EASY_UNLOCK_TIMES[game.easyUnlockIdx]) {
+      const chord = EASY_PROGRESSION[game.easyUnlockIdx];
+      currentPool = [...currentPool, chord];
+      detector.pool = currentPool;
+      game.easyUnlockIdx++;
+      showChordUnlockToast(chord);
+    }
+  }
   const timeFactor = Math.min(1, game.elapsed / currentMode.rampTime);
   const streakFactor = Math.min(1, game.combo / 14) * (currentMode.comboScale !== undefined ? currentMode.comboScale : 1);
   const target = Math.min(1, timeFactor * 0.65 + streakFactor * 0.45);
@@ -3699,8 +3770,11 @@ function loop(now) {
     if (!game.fruits.some(f => f.isBomb && !f.sliced)) {
       game.bombTimer -= dt * 1000;
       if (game.bombTimer <= 0) {
-        spawnBomb();
-        game.bombTimer = 20000 + Math.random() * 14000;
+        if (game.fruits.filter(f => !f.sliced).length < currentMode.maxAirCap) {
+          spawnBomb();
+          game.bombTimer = 20000 + Math.random() * 14000;
+        }
+        // if at cap, leave timer negative so it retries as soon as a fruit clears
       }
     }
   }
@@ -6005,6 +6079,7 @@ function saBuild(parsed) {
   sa.seq = [];
   let lineIdx = -1, section = null;
   const lyrics = [];
+  const capo = parsed.capo || 0;
   for (const it of parsed.items) {
     if (it.type === 'section') { section = it.name; continue; }
     if (it.type !== 'line') continue;
@@ -6014,7 +6089,10 @@ function saBuild(parsed) {
     lyrics.push(it.segs);
     for (const seg of it.segs) {
       if (!seg.chord) continue;
-      sa.seq.push({ display: seg.chord.display, base: seg.chord.base,
+      // capo songs: chart shows shape names (what you finger), detector hears sounded pitch.
+      // transposeChordName with negative semis = transpose UP by capo frets.
+      const detBase = capo && seg.chord.base ? transposeChordName(seg.chord.base, -capo) : seg.chord.base;
+      sa.seq.push({ display: seg.chord.display, base: detBase,
         line: lineIdx, section, segRef: seg });
       section = null;                              // tag only the first chord after a header
     }
@@ -6237,6 +6315,15 @@ function saRender() {
   }
   const _now = performance.now();
   document.getElementById('saStrike').classList.toggle('hit', _now - sa.hitT < 450);
+  // detect loop completion (pos wraps to next pass)
+  if (sa.total > 0) {
+    const curPass = Math.floor(Math.max(0, saPos()) / sa.total);
+    if (curPass > sa.lastLoopPass) {
+      sa.lastLoopPass = curPass;
+      showSaLoopSummary();
+      sa.chordHits = {};
+    }
+  }
   sa.raf = requestAnimationFrame(saRender);
 }
 const SA_CHEERS = ['Nice!', 'Clean!', 'Locked in!', "That's it!", 'Smooth!'];
@@ -6247,6 +6334,7 @@ function saRingRect() {
 function saCelebrate(idx) {
   if (sa.cheerIdx === idx) return;               // one party per chord
   sa.cheerIdx = idx;
+  if (sa.seq[idx]) sa.chordHits[sa.seq[idx].display] = (sa.chordHits[sa.seq[idx].display] || 0) + 1;
   const r = saRingRect();
   // green pop of the strike zone itself
   const flash = document.createElement('div');
@@ -6341,6 +6429,7 @@ function saStart(parsed) {
   sa.gain.gain.value = document.getElementById('saVol').value / 100;
   detector.pool = null;                          // compare against ALL chords so wrong ones get named honestly
   detector.saMode = true;
+  detector.saBaseline = 0;                       // reset slow EMA so first strum is measured from silence
   songState.active = false;                      // never let the learn-mode loop eat detector emissions
   initEchoCancelledMic().then(ok => { audio.useAlt = ok; });
   document.getElementById('saTitle').textContent = (parsed.title || 'STRUM ALONG').toUpperCase();
@@ -6350,6 +6439,12 @@ function saStart(parsed) {
   sa.cheerIdx = -1; sa.missT = 0;
   document.getElementById('saBuddy').innerHTML = fruitBuddy('strum');
   saBuildLane();
+  // per-loop hit tracking
+  sa.chordHits = {};
+  sa.chordFreq = {};
+  sa.seq.forEach(ch => { sa.chordFreq[ch.display] = (sa.chordFreq[ch.display] || 0) + 1; });
+  sa.lastLoopPass = 0;
+  sa.summaryTimer = null;
   sa.on = true; sa.paused = false;
   sa.shownIdx = -1; sa.lastLyric = -1; sa.passBase = 0; sa.idx = 0; sa.hitT = 0;
   const spb = 60 / sa.bpm / sa.speed;
@@ -6360,6 +6455,27 @@ function saStart(parsed) {
   saRender();
   return true;
 }
+function showSaLoopSummary() {
+  const chordsEl = document.getElementById('saLoopChords');
+  if (!chordsEl) return;
+  const seen = [];
+  sa.seq.forEach(ch => { if (!seen.includes(ch.display)) seen.push(ch.display); });
+  chordsEl.innerHTML = seen.map(d => {
+    const hits = sa.chordHits[d] || 0;
+    return '<span class="sasum-pill ' + (hits > 0 ? 'hit' : 'miss') + '">' +
+      (hits > 0 ? '✓ ' : '✗ ') + d + '</span>';
+  }).join('');
+  const el = document.getElementById('saLoopSummary');
+  el.style.display = 'block';
+  if (sa.summaryTimer) clearTimeout(sa.summaryTimer);
+  requestAnimationFrame(() => {
+    el.classList.add('show');
+    sa.summaryTimer = setTimeout(() => {
+      el.classList.remove('show');
+      setTimeout(() => { if (el.classList.contains('show') === false) el.style.display = 'none'; }, 450);
+    }, 4500);
+  });
+}
 function saStop() {
   if (sa.on && sa.total > 0) {
     const loops = Math.floor(sa.passBase / sa.total);
@@ -6369,7 +6485,10 @@ function saStop() {
   detector.saMode = false;
   sa.on = false; sa.paused = false;
   clearTimeout(sa.timer);
+  if (sa.summaryTimer) clearTimeout(sa.summaryTimer);
   cancelAnimationFrame(sa.raf);
+  const sumEl = document.getElementById('saLoopSummary');
+  if (sumEl) { sumEl.style.display = 'none'; sumEl.classList.remove('show'); }
   document.getElementById('strumStage').style.display = 'none';
 }
 document.getElementById('saPause').addEventListener('click', () => {
@@ -7769,6 +7888,14 @@ function startGame() {
   game.elapsed = 0; game.intensity = 0; game.shake = 0;
   game.missLog = {}; game.hitLog = {};
   game.bombsThisSession = 0;
+  // easy mode progressive unlock: start with Em+G, add chords over time
+  if (currentMode === MODES.easy) {
+    game.easyUnlockIdx = 2;
+    currentPool = EASY_PROGRESSION.slice(0, 2);
+    detector.pool = currentPool;
+  } else {
+    game.easyUnlockIdx = -1;
+  }
   game.bombTimer = 13000 + Math.random() * 6000; // first bomb can't appear until 13-19s in
   flashMiss = 0; comboFlash = { text: '', life: 0 };
   lastSpawnedChord = null;
@@ -7784,12 +7911,47 @@ function startGame() {
   requestAnimationFrame(loop);
 }
 
+const XP_THRESHOLDS = [0,50,120,240,400,600,900,1300,1800,2500,3300,4200,5200,6400,7800,9400,11200,13200,15500,18000];
+function getLvNum(xp) {
+  const n = XP_THRESHOLDS.findIndex(t => xp < t);
+  return n < 0 ? 20 : Math.max(1, n);
+}
+const EASY_PROGRESSION = ['Em','G','C','D','A','E','Dm'];
+const EASY_UNLOCK_TIMES = [0,0,35,75,125,185,255];
+let _lvlUpTimer = null;
+function showToast(title, sub, iconColor) {
+  const t = document.getElementById('levelUpToast');
+  if (!t) return;
+  t.querySelector('.lvl-toast-title').textContent = title;
+  const subEl = document.getElementById('levelUpText');
+  subEl.textContent = sub || '';
+  t.querySelector('.lvl-toast-star').style.color = iconColor || '#FFD700';
+  t.style.display = 'block';
+  requestAnimationFrame(() => {
+    t.classList.add('show');
+    if (_lvlUpTimer) clearTimeout(_lvlUpTimer);
+    _lvlUpTimer = setTimeout(() => {
+      t.classList.remove('show');
+      setTimeout(() => { t.style.display = 'none'; }, 400);
+    }, 2800);
+  });
+}
+function showLevelUpToast(lvNum) {
+  showToast('Level Up!', 'You reached Level ' + lvNum + '!', '#FFD700');
+}
+function showChordUnlockToast(chord) {
+  showToast('New chord unlocked', chord + ' just joined the mix!', '#8FD694');
+}
 function awardXp(amount) {
   if (amount <= 0) return;
-  const total = (pLoad('xp', 0) || 0) + amount;
+  const oldXp = pLoad('xp', 0) || 0;
+  const oldLvl = getLvNum(oldXp);
+  const total = oldXp + amount;
   pSave('xp', total);
+  const newLvl = getLvNum(total);
   updateLevelBtn();
   if (typeof renderYourPath === 'function') renderYourPath();
+  if (newLvl > oldLvl) showLevelUpToast(newLvl);
 }
 function playerLevelFromXp() {
   const xp = pLoad('xp', 0) || 0;
@@ -7894,6 +8056,7 @@ document.querySelectorAll('.mode-btn[data-mode]').forEach(btn => {
   btn.addEventListener('click', async () => {
     if (await ensureAudio()) {
       currentMode = MODES[btn.dataset.mode];
+      pSave('lastArcadeMode', btn.dataset.mode);
       currentPool = currentMode.pool || ARCADE_POOL;
       detector.pool = currentPool;
       schoolMode = false;
@@ -7956,7 +8119,7 @@ function openChordDetail(name) {
   document.getElementById('detailTip').textContent = CHORD_SHAPES[name].tip || '';
   const sc = document.getElementById('strumCheck');
   sc.className = '';
-  sc.textContent = drill.on ? (drill.streak > 0 ? 'Streak ' + drill.streak + ' \u2014 strum it\u2026' : 'Strum it\u2026') : 'Strum it\u2026';
+  sc.textContent = drill.on ? (drill.streak > 0 ? 'Streak ' + drill.streak + ', strum it\u2026' : 'Strum it\u2026') : 'Strum it\u2026';
   document.getElementById('drillSkip').style.display = drill.on ? '' : 'none';
   detector.pool = null;            // compare against everything for honest feedback
   drill.advancing = false;
@@ -7974,16 +8137,16 @@ function detailLoop() {
         recordMastery(chord);
         drill.advancing = true;
         sc.className = 'good';
-        sc.textContent = '\u2713 ' + chord + ' \u2014 streak ' + drill.streak + '!';
+        sc.textContent = '\u2713 ' + chord + ', streak ' + drill.streak + '!';
         setTimeout(() => { if (detailRunning && drill.on) openChordDetail(randomDrillChord(detailChord)); }, 700);
       } else {
         recordMastery(chord);
         sc.className = 'good';
-        sc.textContent = '\u2713 ' + chord + ' \u2014 nailed it';
+        sc.textContent = '\u2713 ' + chord + ', nailed it';
       }
     } else {
       sc.className = 'bad';
-      sc.textContent = 'Heard ' + chord + ' \u2014 check your fingers';
+      sc.textContent = 'Heard ' + chord + ', check your fingers';
     }
   }
   requestAnimationFrame(detailLoop);
@@ -8353,6 +8516,14 @@ const SONG_LIBRARY = {
       chart:'[Verse]\nD  A  G  D\nD  A  G  D\nD  A  G  D\n\n[Chorus]\nG  G  D  D\nA  G  D  D' },
     { t:'Zombie', a:'The Cranberries', bpm:84, strum:'D DU UDU', chords:'Em C G D',
       chart:'[Verse]\nEm  C  G  D\nEm  C  G  D\nEm  C  G  D\n\n[Chorus]\nEm  C  G  D\nEm  C  G  D\nEm  C  G  D' },
+    { t:'12-Bar Blues in A', a:'Traditional', bpm:80, strum:'D DU', chords:'A D E',
+      chart:'[12 bars]\nA  A  A  A\nD  D  A  A\nE  D  A  E\n\n[12 bars]\nA  A  A  A\nD  D  A  A\nE  D  A  A' },
+    { t:'Take Me Home, Country Roads', a:'John Denver', bpm:81, strum:'D DU UDU', chords:'G Em D C',
+      chart:'[Verse]\nG  G  Em  Em\nD  D  C  G\nG  G  Em  Em\nD  D  C  G\n\n[Chorus]\nG  D  Em  C\nG  D  C  G' },
+    { t:'Brown Eyed Girl', a:'Van Morrison', bpm:148, strum:'D DU UDU', chords:'G C D Em',
+      chart:'[Verse]\nG  C  G  D\nG  C  G  D\nG  C  G  D\nG  D  G  G\n\n[Chorus]\nC  D  G  Em\nC  D  G  D' },
+    { t:'What I Got', a:'Sublime', bpm:75, strum:'D DU', chords:'D G',
+      chart:'[Verse]\nD  G  D  G\nD  G  D  G\nD  G  D  G\n\n[Chorus]\nD  G  D  G\nD  G  D  G' },
   ],
   medium: [
     { t:'Karma Police', a:'Radiohead', bpm:75, strum:'D DU UDU', chords:'Am D Em G F C Bm E',
@@ -8371,6 +8542,12 @@ const SONG_LIBRARY = {
       chart:'[Intro]\nEm  G  Em  G\nEm  A  Em  A\nG  G\n\n[Verse]\nC  D  Am  G\nD  C  Am  G\n\n[Verse]\nC  D  Am  G\nD  C  Am  G' },
     { t:"Ain't No Sunshine", a:'Bill Withers', bpm:78, strum:'D D DU', chords:'Am Em G Dm',
       chart:'[Verse]\nAm  Em  G  Am\nAm  Em  G  Am\nEm  Em  Dm  Dm\nAm  Em  G  Am\n\n[Verse]\nAm  Em  G  Am\nAm  Em  G  Am\nEm  Em  Dm  Dm\nAm  Em  G  Am' },
+    { t:'Ho Hey', a:'The Lumineers', bpm:103, strum:'D DU UDU', chords:'C F G Am',
+      chart:'[Verse]\nC  C  F  C\nC  C  F  C\n\n[Chorus]\nAm  G  C  C\nF  C  G  C\n\n[Verse]\nC  C  F  C\nC  C  F  C' },
+    { t:'Use Somebody', a:'Kings of Leon', bpm:136, strum:'D DU UDU', chords:'C Am F G',
+      chart:'[Verse]\nC  C  Am  Am\nF  F  C  C\n\n[Chorus]\nC  C  Am  Am\nF  F  C  C\nAm  Am  F  F\nC  C  G  G' },
+    { t:"Don't Think Twice It's Alright", a:'Bob Dylan', bpm:92, strum:'D DU UDU', chords:'C G Am F D',
+      chart:'[Verse]\nC  G  Am  Am\nF  F  C  C\nD  D  G  G\n\n[Chorus]\nC  G  Am  F\nC  G  D  G' },
   ],
   hard: [
     { t:'Hotel California', a:'Eagles', bpm:74, strum:'D DU UDU', chords:'Bm F# A E G D Em',
@@ -8385,6 +8562,12 @@ const SONG_LIBRARY = {
       chart:'[Verse]\nAm  G  D  F\nAm  G  C  E\nAm  G  D  F\nAm  G  C  E\n\n[Chorus]\nA  F#m  Bm  Bm\nA  F#m  Bm  E' },
     { t:'Under the Bridge', a:'Red Hot Chili Peppers', bpm:84, strum:'D DU UDU', chords:'D F#m B G A E',
       chart:'[Verse]\nD  F#m  D  F#m\nB  G  B  G\nD  F#m  D  F#m\nB  G  A  A\n\n[Verse]\nD  F#m  D  F#m\nB  G  B  G' },
+    { t:'Nothing Compares 2 U', a:"Sinead O'Connor", bpm:58, strum:'D DU', chords:'F C Bb Am G',
+      chart:'[Verse]\nF  C  F  C\nBb  C  F  F\n\n[Chorus]\nF  C  Bb  C\nAm  Bb  C  F\n\n[Verse]\nF  C  F  C\nBb  C  F  F' },
+    { t:'Losing My Religion', a:'R.E.M.', bpm:124, strum:'D DU UDU', chords:'Am F G Em C',
+      chart:'[Verse]\nAm  Em  Am  Em\nAm  Em  G  G\n\n[Chorus]\nF  Am  F  Am\nF  G  Am  G\nEm  Em  G  G' },
+    { t:'Livin on a Prayer', a:'Bon Jovi', bpm:122, strum:'D DU UDU', chords:'Em C D G',
+      chart:'[Verse]\nEm  Em  C  D\nEm  Em  C  D\n\n[Chorus]\nEm  C  D  G\nEm  C  D  G' },
   ],
   capo: [
     { t:'Kiss Me', a:'Sixpence None the Richer', bpm:60, capo:7, strum:'D DU UDU', chords:'C Cmaj7 C7 F G Am',
@@ -8399,9 +8582,13 @@ const SONG_LIBRARY = {
       chart:'[Verse]\nD  G  G  D  A\nD  G  G  D  A\n\n[Chorus]\nD  G  G  D  A\nD  G  G  D  A' },
     { t:"I'm Yours", a:'Jason Mraz', bpm:76, capo:4, strum:'D X U X', chords:'C G Am F',
       chart:'[Verse]\nC  G  Am  F\nC  G  Am  F\n\n[Chorus]\nC  G  Am  F\nC  G  Am  F' },
+    { t:'The Scientist', a:'Coldplay', bpm:76, capo:5, strum:'D DU UDU', chords:'Dm F C G',
+      chart:'[Verse]\nDm  F  C  C\nDm  F  C  C\n\n[Chorus]\nC  G  Dm  F\nC  G  Dm  F' },
+    { t:'More Than Words', a:'Extreme', bpm:65, capo:1, strum:'D DU UDU', chords:'G G7 C Am7 D',
+      chart:'[Verse]\nG  G7  C  Am7\nD  D  G  G\nG  G7  C  Am7\nD  D  G  G\n\n[Chorus]\nC  D  G  Em\nAm  D  G  G' },
   ],
   picking: [
-    { t:'Nothing Else Matters', a:'Metallica', bpm:69, pick:'6 3 2 1 3 2', hold:'Nothing \u2014 every string rings open. Just pick.',
+    { t:'Nothing Else Matters', a:'Metallica', bpm:69, pick:'6 3 2 1 3 2', hold:'Nothing. Every string rings open. Just pick.',
       chords:'Em', chart:'[Intro]\nEm  Em  Em  Em\nEm  Em  Em  Em\n\n[Intro]\nEm  Em  Em  Em' },
     { t:'Tonight, Tonight', a:'The Smashing Pumpkins', bpm:74, pick:'5/3 2 3 5/3 2 3 5/3 2 | 5/5 2 3 5/5 2 3 5/5 2 | 5/7 2 3 5/7 2 3 5/7 2 | 5/10 2 3 5/10 2 3 5/10 2',
       hold:'Ring finger on fret 3 of string 5 | Slide up: same finger, fret 5 | Keep climbing: fret 7 | Last stop: fret 10',
@@ -8411,7 +8598,7 @@ const SONG_LIBRARY = {
       shape:'Am | C | D | Fmaj7 | E',
       chords:'Am C D F E', chart:'[Verse]\nAm  C  D  F\nAm  C  E  E\nAm  C  D  F\nAm  E  Am  E' },
     { t:'Dust in the Wind', a:'Kansas', bpm:80, pick:'5/3 3 2/1 3 1 3 2/1 3 | 5 3/2 2/1 3/2 1 3/2 2/1 3/2',
-      hold:'Hold C \u2014 thumb plays string 5, fingers the rest | Switch to Am, same pattern',
+      hold:'Hold C. Thumb plays string 5, fingers the rest | Switch to Am, same pattern',
       shape:'C | Am',
       chords:'C Am G', chart:'[Verse]\nC  Am  C  Am\nC  Am  G  Am\n\n[Verse]\nC  Am  C  Am\nC  Am  G  Am' },
   ],
@@ -8469,10 +8656,18 @@ function hideYtDock() {
   if (yt.player && yt.player.pauseVideo) try { yt.player.pauseVideo(); } catch (e) {}
   if (location.protocol === 'file:') document.getElementById('ytFrame').innerHTML = '<div id="ytPlayer"></div>';
 }
-document.getElementById('ytFindBtn').addEventListener('click', () => {
+const _ytFindBtn = document.getElementById('ytFindBtn');
+if (_ytFindBtn) _ytFindBtn.addEventListener('click', () => {
   const tm = document.getElementById('songText').value.match(/^title\s*:\s*(.+)$/im);
   const q = (tm ? tm[1] : selectedSong.t + ' ' + selectedSong.a);
   window.open('https://www.youtube.com/results?search_query=' + encodeURIComponent(q), '_blank');
+});
+document.getElementById('customChartToggle').addEventListener('click', () => {
+  const wrap = document.getElementById('chartInputWrap');
+  const btn = document.getElementById('customChartToggle');
+  const showing = wrap.style.display !== 'none';
+  wrap.style.display = showing ? 'none' : 'block';
+  btn.textContent = showing ? '+ Paste custom chart' : '- Hide custom chart';
 });
 document.querySelectorAll('[data-ytspeed]').forEach(btn => {
   btn.addEventListener('click', () => {
@@ -8615,7 +8810,7 @@ function pkRenderPart() {
     lbl.textContent = 'Part ' + (pk.part + 1) + ' of ' + pk.parts.length;
   } else lbl.style.display = 'none';
   const hold = pk.holds[pk.part] || pk.holds[0] || '';
-  document.getElementById('pkHold').textContent = hold ? 'Hold: ' + hold : 'No fretting \u2014 open strings';
+  document.getElementById('pkHold').textContent = hold ? 'Hold: ' + hold : 'No fretting. Open strings.';
   pkGeom = pkNeckSVG(pk.seq, pk.shapes[pk.part] || pk.shapes[0] || '');
   document.getElementById('pkNeckWrap').innerHTML = pkGeom.svg;
   const chips = document.getElementById('pkChips');
@@ -8677,30 +8872,30 @@ const BUDDY_SVG = '<svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">'
   '<ellipse cx="40" cy="24" rx="1.6" ry="2.2" fill="#221406" transform="rotate(15 40 24)"/></svg>';
 const BUDDY_TIPS = {
   strum: [
-    'No wrong notes here \u2014 the band keeps playing either way.',
+    'No wrong notes here. The band keeps playing either way.',
     'Try strumming just on beat 1 until the changes feel easy.',
     'Mute the band a little and listen for your own guitar.',
     'Drop to .75x if the changes rush you. Nobody is counting.',
   ],
   pick: [
-    'Rest your palm lightly on the bridge \u2014 your hand stays anchored and your aim improves.',
+    'Rest your palm lightly on the bridge. Your hand stays anchored and your aim improves.',
     'Thumb covers strings 6, 5, 4. Fingers take 3, 2, 1. Divide and conquer.',
     'Let every note ring into the next one. If it sounds choppy, slow down.',
-    'Look at your picking hand, not the neck \u2014 your fretting finger is not going anywhere.',
+    'Look at your picking hand, not the neck. Your fretting finger is not going anywhere.',
   ],
   gauntlet: [
-    'Press right behind the fret wire, not on top of it \u2014 less force, cleaner sound.',
+    'Press right behind the fret wire, not on top of it. Less force, cleaner sound.',
     'Curl your fingers like holding an egg, so they don\u2019t mute the neighbors.',
     'Buzzing? Press a little harder and closer to the fret.',
     'Strum all six, then pick the strings one by one to find the muted ones.',
   ],
   studio: [
-    'Count yourself in out loud \u2014 your first take sets the grid for everything.',
+    'Count yourself in out loud. Your first take sets the grid for everything.',
     'Record the simplest version first. Fancy goes on top.',
     'A 2-bar loop you nail beats an 8-bar loop you fumble.',
   ],
   tuner: [
-    'Pluck once and let it ring \u2014 the needle hates rapid re-picking.',
+    'Pluck once and let it ring. The needle hates rapid re-picking.',
     'Always tune UP to the note. If you overshoot, drop below and come back up.',
   ],
 };
@@ -8799,8 +8994,9 @@ function buildSongLib() {
         document.querySelectorAll('.lib-card').forEach(c => c.classList.remove('sel'));
         card.classList.add('sel');
         document.getElementById('songError').style.display = 'none';
-        document.getElementById('capoResult').textContent = '';   // a new song voids the old capo result
-        document.getElementById('ytUrl').value = '';               // ...and the old track link
+        document.getElementById('capoResult').textContent = '';
+        document.getElementById('ytUrl').value = s.ytId || '';
+        if (s.ytId) showYtDock(s.ytId); else hideYtDock();
         selectedSong = { t: s.t, a: s.a };
         // bring the Start button into view so there's no hunting for it
         document.getElementById('songLoadBtn').scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -8819,7 +9015,7 @@ document.getElementById('capoSuggest').addEventListener('click', () => {
   const res = suggestCapo(document.getElementById('songText').value);
   const out = document.getElementById('capoResult');
   if (!res) { out.textContent = 'No chords found yet.'; return; }
-  if (res.capo === 0) { out.textContent = 'No capo helps here \u2014 beginner mode is your friend.'; return; }
+  if (res.capo === 0) { out.textContent = 'No capo helps here. Beginner mode is your friend.'; return; }
   out.innerHTML = '<b style="color:var(--honey)">Capo ' + res.capo + '</b>: ' + res.mapping.join(', ') + ' \u00a0';
   const btn = document.createElement('button');
   btn.className = 'pill-btn'; btn.textContent = 'Apply capo ' + res.capo;
@@ -8875,7 +9071,7 @@ function buildSongStage(parsed) {
     if (unknown.size) {
       nb.style.display = '';
       nb.textContent = [...unknown].join(', ') + (unknown.size > 1 ? ' aren\u2019t' : ' isn\u2019t') +
-        ' in the detector yet \u2014 dashed pills, tap to advance';
+        ' in the detector yet. Dashed pills, tap to advance.';
     } else nb.style.display = 'none';
   }
   document.getElementById('songStage').style.display = 'flex';
@@ -8893,7 +9089,7 @@ function buildSongStage(parsed) {
   const cb = document.getElementById('capoBanner');
   if (parsed.capo) {
     cb.style.display = 'block';
-    cb.textContent = 'Capo on fret ' + parsed.capo + ' \u2014 clamp it on before you strum, and keep it on for the whole song';
+    cb.textContent = 'Capo on fret ' + parsed.capo + '. Clamp it on before you strum and keep it on for the whole song.';
   } else cb.style.display = 'none';
   // metronome starts at the song's tempo, 1x
   metroStop();
@@ -9095,7 +9291,7 @@ function setCursor(idx, fromClick) {
   // big now-zone
   const nxt = songState.seq[songState.cursor + 1];
   document.getElementById('nowChord').textContent = cur ? cur.display : 'Done!';
-  document.getElementById('nowNext').innerHTML = 'next: <b>' + (nxt ? nxt.display : '\u2014') + '</b>';
+  document.getElementById('nowNext').innerHTML = 'next: <b>' + (nxt ? nxt.display : '--') + '</b>';
   document.getElementById('nowDiagram').innerHTML = cur && cur.base && CHORD_SHAPES[cur.base] ? chordSVG(cur.base, 100) : '';
   document.getElementById('songDone').style.display = songState.cursor >= songState.seq.length ? 'block' : 'none';
   if (songState.cursor >= songState.seq.length && !fromClick) playChime();
@@ -9212,6 +9408,28 @@ document.getElementById('sceneBtn').addEventListener('click', () => {
   setArcadeTheme(VIBE_CYCLE[(i + 1) % VIBE_CYCLE.length]);
 });
 sceneBtnLabel();
+
+// gear panel toggle + close on outside click
+document.getElementById('gearBtn').addEventListener('click', e => {
+  e.stopPropagation();
+  const p = document.getElementById('gearPanel');
+  p.style.display = p.style.display === 'none' ? 'flex' : 'none';
+});
+document.getElementById('gearPanel').addEventListener('click', () => {
+  setTimeout(() => { document.getElementById('gearPanel').style.display = 'none'; }, 180);
+});
+document.addEventListener('click', () => { document.getElementById('gearPanel').style.display = 'none'; });
+
+// quick play
+document.getElementById('quickPlayBtn').addEventListener('click', async () => {
+  if (!(await ensureAudio())) return;
+  const modeKey = pLoad('lastArcadeMode', 'medium');
+  currentMode = MODES[modeKey] || MODES.medium;
+  currentPool = currentMode.pool || ARCADE_POOL;
+  detector.pool = currentPool;
+  schoolMode = false;
+  startGame();
+});
 
 document.getElementById('drillSkip').addEventListener('click', () => {
   if (!drill.on || drill.advancing) return;
@@ -9352,8 +9570,8 @@ document.querySelectorAll('.tun-string').forEach((row, i) => {
     tunState.lockIdx = -1; tunState.switchN = 0;
     const s = TUNER_STRINGS[i];
     document.getElementById('tunStatus').textContent = tunState.manual >= 0
-      ? 'Listening only for string ' + (6 - i) + ' (' + s.name + s.octave + ') \u2014 tap again for auto'
-      : 'Auto \u2014 play any string';
+      ? 'Listening only for string ' + (6 - i) + ' (' + s.name + s.octave + '). Tap again for auto.'
+      : 'Auto. Play any string.';
     document.getElementById('tunStatus').style.color = 'var(--cream)';
     tunerRefreshStrings();
   });
@@ -9483,7 +9701,8 @@ document.getElementById('tunerBack').addEventListener('click', () => {
 
 /* ===== CHORD CHANGE DRILL ===== */
 const CCD_CHORDS = ['A','Am','C','D','Dm','E','Em','G','F','G7','D7','A7'];
-let ccd = { running: false, chordA: null, chordB: null, current: null, count: 0,
+let ccd = { running: false, chordA: null, chordB: null, chordC: null, chordD: null,
+             chain: [], chainIdx: 0, chainSlots: 2, current: null, count: 0,
              timer: null, raf: 0, timeLeft: 60 };
 
 function openChordChangeDrill() {
@@ -9502,25 +9721,30 @@ function ccdShowSetup() {
   document.getElementById('ccdSetup').style.display = 'block';
   document.getElementById('ccdActive').style.display = 'none';
   document.getElementById('ccdResult').style.display = 'none';
-  ccd.chordA = null; ccd.chordB = null;
+  ccd.chordA = null; ccd.chordB = null; ccd.chordC = null; ccd.chordD = null;
+  ccd.chainSlots = 2;
+  document.getElementById('ccdPickCWrap').style.display = 'none';
+  document.getElementById('ccdPickDWrap').style.display = 'none';
   ccdRenderPicks();
   ccdUpdateStartBtn();
 }
 
 function ccdRenderPicks() {
-  ['A','B'].forEach(slot => {
+  ['A','B','C','D'].forEach(slot => {
     const row = document.getElementById('ccdPick' + slot);
+    if (!row) return;
     row.innerHTML = CCD_CHORDS.map(c =>
       '<button class="ccd-chip" data-chord="' + c + '" data-slot="' + slot + '">' + c + '</button>'
     ).join('');
     row.querySelectorAll('.ccd-chip').forEach(btn => {
       btn.addEventListener('click', () => {
-        if (slot === 'A') ccd.chordA = btn.dataset.chord;
-        else ccd.chordB = btn.dataset.chord;
-        if (ccd.chordA === ccd.chordB) {
-          if (slot === 'A') ccd.chordB = null;
-          else ccd.chordA = null;
-        }
+        const key = 'chord' + slot;
+        ccd[key] = btn.dataset.chord;
+        // clear duplicates in later slots
+        ['A','B','C','D'].forEach((s, i) => {
+          const k = 'chord' + s;
+          if (s !== slot && ccd[k] === ccd[key]) ccd[k] = null;
+        });
         ccdSyncChips();
         ccdUpdateStartBtn();
       });
@@ -9529,27 +9753,34 @@ function ccdRenderPicks() {
 }
 
 function ccdSyncChips() {
+  const selClass = ['sel-a','sel-b','sel-c','sel-d'];
   document.querySelectorAll('.ccd-chip').forEach(btn => {
     const c = btn.dataset.chord, s = btn.dataset.slot;
-    btn.classList.toggle('sel-a', s === 'A' && c === ccd.chordA);
-    btn.classList.toggle('sel-b', s === 'B' && c === ccd.chordB);
+    const idx = ['A','B','C','D'].indexOf(s);
+    selClass.forEach((cls, i) => btn.classList.toggle(cls, i === idx && c === ccd['chord' + s]));
   });
+  const chain = [ccd.chordA, ccd.chordB, ccd.chordC, ccd.chordD].filter(Boolean);
   const lbl = document.getElementById('ccdPairLabel');
-  if (ccd.chordA && ccd.chordB) lbl.textContent = ccd.chordA + '  to  ' + ccd.chordB;
-  else if (ccd.chordA) lbl.textContent = ccd.chordA + '  to  ?';
-  else if (ccd.chordB) lbl.textContent = '?  to  ' + ccd.chordB;
+  if (chain.length >= 2) lbl.textContent = 'Cycle: ' + chain.join(' → ') + ' → ' + chain[0];
+  else if (chain.length === 1) lbl.textContent = chain[0] + '  to  ?';
   else lbl.textContent = 'Pick two chords above';
 }
 
 function ccdUpdateStartBtn() {
-  document.getElementById('ccdStartBtn').disabled = !(ccd.chordA && ccd.chordB);
+  const ready = !!(ccd.chordA && ccd.chordB);
+  document.getElementById('ccdStartBtn').disabled = !ready;
+  const addBtn = document.getElementById('ccdAddSlotBtn');
+  addBtn.disabled = !ready || ccd.chainSlots >= 4;
+  addBtn.textContent = ccd.chainSlots < 3 ? '+ Add 3rd chord' : '+ Add 4th chord';
 }
 
 async function startChordDrill() {
   if (!(await ensureAudio())) return;
-  detector.pool = [ccd.chordA, ccd.chordB];
+  ccd.chain = [ccd.chordA, ccd.chordB, ccd.chordC, ccd.chordD].filter(Boolean);
+  ccd.chainIdx = 0;
+  detector.pool = ccd.chain;
   ccd.count = 0; ccd.timeLeft = 60; ccd.running = true;
-  ccd.current = ccd.chordA;
+  ccd.current = ccd.chain[0];
   document.getElementById('ccdSetup').style.display = 'none';
   document.getElementById('ccdActive').style.display = 'block';
   ccdUpdateActive();
@@ -9570,7 +9801,10 @@ function ccdUpdateActive() {
   const diag = document.getElementById('ccdDiagram');
   diag.innerHTML = ccd.current && typeof chordSVG === 'function' ? chordSVG(ccd.current, 140) : '';
   document.getElementById('ccdCount').textContent = ccd.count + ' change' + (ccd.count !== 1 ? 's' : '');
-  document.getElementById('ccdStatus').textContent = 'Play ' + (ccd.current || '') + ' on your guitar';
+  const pos = ccd.chain.length > 2
+    ? ' (' + (ccd.chainIdx + 1) + '/' + ccd.chain.length + ')'
+    : '';
+  document.getElementById('ccdStatus').textContent = 'Play ' + (ccd.current || '') + pos + ' on your guitar';
 }
 
 let ccdCooldown = false;
@@ -9578,9 +9812,9 @@ function chordDrillLoop() {
   if (!ccd.running) return;
   const chord = detector.update(performance.now());
   if (chord && chord === ccd.current && !ccdCooldown) {
-    const next = ccd.current === ccd.chordA ? ccd.chordB : ccd.chordA;
+    ccd.chainIdx = (ccd.chainIdx + 1) % ccd.chain.length;
     ccd.count++;
-    ccd.current = next;
+    ccd.current = ccd.chain[ccd.chainIdx];
     ccdCooldown = true;
     const tgt = document.getElementById('ccdTarget');
     tgt.classList.add('flash');
@@ -9601,7 +9835,7 @@ function endChordDrill() {
   cancelAnimationFrame(ccd.raf);
   detector.pool = null;
   awardXp(ccd.count * 2);
-  const bestKey = 'ccdBest_' + ccd.chordA + '_' + ccd.chordB;
+  const bestKey = 'ccdBest_' + ccd.chain.join('_');
   const prev = pLoad(bestKey, 0) || 0;
   const isNew = ccd.count > prev;
   if (isNew) pSave(bestKey, ccd.count);
@@ -9615,6 +9849,13 @@ function endChordDrill() {
 }
 
 document.getElementById('ccdStartBtn').addEventListener('click', startChordDrill);
+document.getElementById('ccdAddSlotBtn').addEventListener('click', () => {
+  if (ccd.chainSlots < 4) {
+    ccd.chainSlots++;
+    document.getElementById(ccd.chainSlots === 3 ? 'ccdPickCWrap' : 'ccdPickDWrap').style.display = 'block';
+    ccdUpdateStartBtn();
+  }
+});
 document.getElementById('ccdRetryBtn').addEventListener('click', () => ccdShowSetup());
 document.getElementById('ccdBackBtn').addEventListener('click', () => {
   ccd.running = false; clearInterval(ccd.timer); cancelAnimationFrame(ccd.raf);
@@ -9734,9 +9975,7 @@ function updateLevelBtn() {
   const b = document.getElementById('levelBtn');
   if (!b) return;
   if (!lvl) { b.textContent = 'Set Level'; return; }
-  const xpThresholds = [0,50,120,240,400,600,900,1300,1800,2500,3300,4200,5200,6400,7800,9400,11200,13200,15500,18000];
-  const lvNum = xpThresholds.findIndex(t => xp < t);
-  const lvLabel = lvNum < 0 ? 20 : Math.max(1, lvNum);
+  const lvLabel = getLvNum(xp);
   b.textContent = (lbl[lvl] || lvl) + ' · Lv ' + lvLabel;
 }
 document.querySelectorAll('.ob-card[data-level]').forEach(btn =>
@@ -9763,5 +10002,6 @@ document.querySelectorAll('.home-sub').forEach(sub => {
 // the menu opens over a living scene
 ambientStart();
 </script>
+<div id="levelUpToast"><div class="lvl-toast-inner"><div class="lvl-toast-star">&#9733;</div><div><div class="lvl-toast-title">Level Up!</div><div class="lvl-toast-sub" id="levelUpText"></div></div></div></div>
 </body>
 </html>
