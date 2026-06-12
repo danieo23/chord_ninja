@@ -1322,6 +1322,7 @@ const CHORD_TONES = {
   'C#' : [1, 5, 8],        'Eb' : [3, 7, 10],       'Ab' : [8, 0, 3],
   'C#m': [1, 4, 8],        'Ebm': [3, 6, 10],       'Fm' : [5, 8, 0],
   'G#m': [8, 11, 3],       'Bbm': [10, 1, 5],
+  'D6/9': [2, 6, 9, 11, 4],  // D F# A B E
 };
 
 // Build harmonic-aware templates: each chord tone contributes
@@ -1571,6 +1572,7 @@ const CHORD_SHAPES = {
   'Gm' : { frets:[3,5,5,3,3,3],   fingers:[1,3,4,1,1,1], base:1, barre:{finger:1,fret:3,from:0,to:5}, tip:'Same grip as F#m, one fret higher.' },
   'F#' : { frets:[2,4,4,3,2,2],   fingers:[1,3,4,2,1,1], base:1, barre:{finger:1,fret:2,from:0,to:5}, tip:'E-major shape barred at fret 2. Same grip as F, one fret up.' },
   'Cm' : { frets:[-1,3,5,5,4,3],  fingers:[0,1,3,4,2,1], base:1, barre:{finger:1,fret:3,from:1,to:5}, tip:'Am shape barred at fret 3. Same grip as Bm, one fret up.' },
+  'C#m': { frets:[-1,4,6,6,5,4],  fingers:[0,1,3,4,2,1], base:1, barre:{finger:1,fret:4,from:1,to:5}, tip:'Am shape barred at fret 4. Same grip as Bm, two frets higher.' },
   'Cmaj7': { frets:[-1,3,2,0,0,0], fingers:[0,3,2,0,0,0], base:1, tip:'A C chord with your index finger lifted off. Dreamy sound, easy shape.' },
   // color chords
   'Am7' : { frets:[-1,0,2,0,1,0],  fingers:[0,0,2,0,1,0], base:1, tip:'Am with the ring finger lifted. Instant mellow.' },
@@ -1583,6 +1585,7 @@ const CHORD_SHAPES = {
   'Amaj7': { frets:[-1,0,2,1,2,0], fingers:[0,0,2,1,3,0], base:1, tip:'Dreamy A. Keep the cluster of three tight.' },
   'Dmaj7': { frets:[-1,-1,0,2,2,2],fingers:[0,0,0,1,1,1], base:1, tip:'One finger flat across three strings at fret 2.' },
   'Gmaj7': { frets:[3,2,0,0,0,2],  fingers:[2,1,0,0,0,3], base:1, tip:'G, but the high e drops to fret 2. Jazzy with zero effort.' },
+  'D6/9': { frets:[-1,-1,0,2,0,2], fingers:[0,0,0,1,0,2], base:1, tip:'The A Horse with No Name chord. Only two fingers. A bit jangly, a lot iconic.' },
 };
 
 const CHORD_GROUPS = [
@@ -8709,8 +8712,8 @@ document.querySelectorAll('#metroMults .pill-btn[data-mult]').forEach(btn => {
    favorite chord site and they render under each chord) ---- */
 const SONG_LIBRARY = {
   easy: [
-    { t:'A Horse with No Name', a:'America', bpm:122, strum:'D DU UDU', chords:'Em D',
-      chart:'[Verse]\nEm  D  Em  D\nEm  D  Em  D\n\n[Chorus]\nEm  D  Em  D\nEm  D  Em  D\n\n[Verse]\nEm  D  Em  D\nEm  D  Em  D\n\n[Chorus]\nEm  D  Em  D\nEm  D  Em  D', ytId:'na47wMFfQCo' },
+    { t:'A Horse with No Name', a:'America', bpm:122, strum:'D DU UDU', chords:'Em D6/9',
+      chart:'[Verse]\nEm  D6/9  Em  D6/9\nEm  D6/9  Em  D6/9\n\n[Chorus]\nEm  D6/9  Em  D6/9\nEm  D6/9  Em  D6/9\n\n[Verse]\nEm  D6/9  Em  D6/9\nEm  D6/9  Em  D6/9\n\n[Chorus]\nEm  D6/9  Em  D6/9\nEm  D6/9  Em  D6/9', ytId:'na47wMFfQCo' },
     { t:'Three Little Birds', a:'Bob Marley', bpm:76, strum:'D DU UDU', chords:'A D E',
       chart:'[Chorus]\nA\nA  D  A\n\n[Verse]\nA  E\nA  D  A\nA  E  A\n\n[Chorus]\nA\nA  D  A\n\n[Verse]\nA  E\nA  D  A\nA  E  A', ytId:'HNBCVM4KbUM' },
     { t:"Knockin' on Heaven's Door", a:'Bob Dylan', bpm:69, strum:'D DU UDU', chords:'G D Am C',
@@ -8769,10 +8772,10 @@ const SONG_LIBRARY = {
       chart:'[Verse]\nF  C  C7  F\nBb  F  C  F\nF  C  C7  F\nBb  F  C  F\n\n[Outro]\nF  Bb  C  F\nF  Bb  C  F\nF  Bb  C  F', ytId:'A_MjCqQoLLA' },
     { t:'While My Guitar Gently Weeps', a:'The Beatles', bpm:115, strum:'D DU UDU', chords:'Am G D F C E A F#m Bm',
       chart:'[Verse]\nAm  G  D  F\nAm  G  C  E\nAm  G  D  F\nAm  G  C  E\n\n[Bridge]\nA  F#m  Bm  Bm\nA  F#m  Bm  E', ytId:'bI8P6ZSHSvE' },
-    { t:'Under the Bridge', a:'Red Hot Chili Peppers', bpm:84, strum:'D DU UDU', chords:'D F#m B G A E',
-      chart:'[Verse]\nD  F#m  D  F#m\nB  G  B  G\nD  F#m  D  F#m\nB  G  A  A\n\n[Verse]\nD  F#m  D  F#m\nB  G  B  G', ytId:'GLvohMXgcBo' },
-    { t:'Nothing Compares 2 U', a:"Sinead O'Connor", bpm:58, strum:'D DU', chords:'F C Bb Am G',
-      chart:'[Verse]\nF  C  F  C\nBb  C  F  F\n\n[Chorus]\nF  C  Bb  C\nAm  Bb  C  F\n\n[Verse]\nF  C  F  C\nBb  C  F  F', ytId:'0-EF60neguk' },
+    { t:'Under the Bridge', a:'Red Hot Chili Peppers', bpm:84, strum:'D DU UDU', chords:'D F#m Bm G E B C#m A',
+      chart:'[Verse]\nD  F#m  D  F#m\nBm  G  Bm  G\nD  F#m  D  F#m\nBm  G  A  A\n\n[Chorus]\nE  B  C#m  A\nE  B  C#m  A\nE  B  C#m  A', ytId:'GLvohMXgcBo' },
+    { t:'Nothing Compares 2 U', a:"Sinead O'Connor", bpm:58, strum:'D DU', chords:'F C Dm Bb Am',
+      chart:'[Verse]\nF  C  Dm  C\nBb  C  F  F\n\n[Chorus]\nF  Am  Bb  C\nF  Am  Bb  C\n\n[Verse]\nF  C  Dm  C\nBb  C  F  F', ytId:'0-EF60neguk' },
     { t:'Losing My Religion', a:'R.E.M.', bpm:124, strum:'D DU UDU', chords:'Am F G Em C',
       chart:'[Verse]\nAm  Em  Am  Em\nAm  Em  G  G\n\n[Chorus]\nF  Am  F  Am\nF  G  Am  G\nEm  Em  G  G', ytId:'xwtdhWltSIg' },
     { t:'Livin on a Prayer', a:'Bon Jovi', bpm:122, strum:'D DU UDU', chords:'Em C D G',
@@ -8789,10 +8792,10 @@ const SONG_LIBRARY = {
       chart:'[Verse]\nG  D  Em  C\nG  D  C  C\n\n[Chorus]\nG  D  Em  C\nG  D  C  C', ytId:'1gX1EP6mG-E' },
     { t:"Free Fallin'", a:'Tom Petty', bpm:84, capo:3, strum:'D DU UDU', chords:'D G A',
       chart:'[Verse]\nD  G  G  D  A\nD  G  G  D  A\n\n[Chorus]\nD  G  G  D  A\nD  G  G  D  A', ytId:'1lWJXDG2i0A' },
-    { t:"I'm Yours", a:'Jason Mraz', bpm:76, capo:4, strum:'D X U X', chords:'C G Am F',
-      chart:'[Verse]\nC  G  Am  F\nC  G  Am  F\n\n[Chorus]\nC  G  Am  F\nC  G  Am  F', ytId:'EkHTsc9PU2A' },
-    { t:'The Scientist', a:'Coldplay', bpm:76, capo:5, strum:'D DU UDU', chords:'Dm F C G',
-      chart:'[Verse]\nDm  F  C  C\nDm  F  C  C\n\n[Chorus]\nC  G  Dm  F\nC  G  Dm  F', ytId:'RB-RcX5DS5A' },
+    { t:"I'm Yours", a:'Jason Mraz', bpm:76, capo:4, strum:'D X U X', chords:'G D Em C',
+      chart:'[Verse]\nG  D  Em  C\nG  D  Em  C\n\n[Chorus]\nG  D  Em  C\nG  D  Em  C', ytId:'EkHTsc9PU2A' },
+    { t:'The Scientist', a:'Coldplay', bpm:76, strum:'D DU UDU', chords:'Dm Bb F C',
+      chart:'[Verse]\nDm  Bb  F  F\nDm  Bb  F  F\n\n[Chorus]\nF  C  Dm  Bb\nF  C  Dm  Bb', ytId:'RB-RcX5DS5A' },
     { t:'More Than Words', a:'Extreme', bpm:65, capo:1, strum:'D DU UDU', chords:'G G7 C Am7 D',
       chart:'[Verse]\nG  G7  C  Am7\nD  D  G  G\nG  G7  C  Am7\nD  D  G  G\n\n[Chorus]\nC  D  G  Em\nAm  D  G  G', ytId:'UrIiLvg58SY' },
   ],
