@@ -382,7 +382,7 @@
 
   /* chart */
   #chartView{flex:1;display:flex;flex-direction:column;min-height:0}
-  #nowZone{display:flex;align-items:center;justify-content:center;gap:26px;padding:4px 16px 8px;
+  #nowZone{display:flex;align-items:center;justify-content:center;gap:40px;padding:10px 24px 12px;
     flex-wrap:wrap}
   #nowDiagram{width:110px;min-width:90px;background:rgba(20,12,6,.5);border:1.5px solid var(--line);
     border-radius:14px;padding:8px 6px;display:flex;flex-direction:column;gap:2px;
@@ -395,7 +395,7 @@
   .prog-pill.current{background:rgba(240,169,60,.2);color:var(--honey)}
   .prog-pill:hover{color:rgba(255,243,224,.95)}
   #nowMain{text-align:center}
-  #nowDiagramInline{width:80px;margin:5px auto 0;display:flex;justify-content:center}
+  #nowDiagramInline{width:112px;margin:8px auto 0;display:flex;justify-content:center}
   #nowChord{font-family:'Fredoka',sans-serif;font-weight:700;font-size:clamp(40px,5.5vw,68px);line-height:1;color:var(--honey)}
   #nowNext{font-size:14px;color:var(--dim);margin-top:4px;font-weight:700}
   #nowNext b{font-family:'Fredoka',sans-serif;color:var(--cream);font-size:18px}
@@ -537,7 +537,7 @@
   #songStage .seg .lyr{color:#21505F}
   #songStage .seg .pill{background:rgba(255,255,255,.7);border-color:rgba(20,72,92,.3);color:#14485C}
   #songStage .seg .pill.done{background:rgba(110,200,120,.25);border-color:#2F8F3F;color:#1E6B2C}
-  #songStage .seg .pill.current{background:rgba(240,169,60,.3);border-color:#D98414;color:#9A5E06}
+  #songStage .seg .pill.current{background-color:rgba(240,169,60,.15);border-color:#D98414;color:#9A5E06}
   #songStage .seg .pill.wrongFlash{border-color:#E2453A;color:#C12C22}
   #songStage .gauntlet-card{background:rgba(255,255,255,.62);border-color:rgba(20,72,92,.2);backdrop-filter:blur(4px)}
   #songStage .gauntlet-card .gname{color:#14485C}
@@ -1035,7 +1035,10 @@
     <div id="ytCtrl">
       <button class="pill-btn metro-sm" data-ytspeed="0.5">.5x</button>
       <button class="pill-btn metro-sm" data-ytspeed="0.75">.75x</button>
+      <button class="pill-btn metro-sm" data-ytspeed="0.9">.9x</button>
+      <button class="pill-btn metro-sm" data-ytspeed="0.95">.95x</button>
       <button class="pill-btn metro-sm on" data-ytspeed="1">1x</button>
+      <button class="pill-btn metro-sm" data-ytspeed="1.05">1.05x</button>
       <button class="pill-btn metro-sm" id="ytSyncBtn">Sync</button>
       <button class="pill-btn metro-sm" id="ytHide">Hide</button>
       <span id="ytSpeedTip" style="display:none;font-size:10px;font-weight:800;color:#14485C;align-self:center">slow it down: gear icon &rarr; speed</span>
@@ -1117,6 +1120,7 @@
     <span id="saTitle">STRUM ALONG</span>
     <span id="saBpmLbl" class="hud-label"></span>
     <label id="saSpeedWrap">speed <input type="range" id="saSpeed" min="40" max="100" step="5" value="100"><span id="saSpeedLbl">100%</span></label>
+    <button class="pill-btn" id="saResyncBtn">Resync</button>
     <button class="pill-btn" id="saBandBtn">Synth: off</button>
     <label id="saVolWrap">synth vol <input type="range" id="saVol" min="0" max="100" value="80"></label>
     <button class="pill-btn" id="saPause">Pause</button>
@@ -8745,8 +8749,8 @@ const SONG_LIBRARY = {
       chart:'[Chorus]\nC  G  Am  F\nC  F  C  G\n\n[Verse]\nC  G  Am  F\nC  G  Am  F\nC  G  Am  F\nC  F  C  G', ytId:'IT8XvzIfi4U' },
     { t:'Wish You Were Here', a:'Pink Floyd', bpm:60, strum:'D DU UDU', chords:'Em G C D Am',
       chart:'[Intro]\nEm  G  Em  G\nEm  A  Em  A\nG  G\n\n[Verse]\nC  D  Am  G\nD  C  Am  G\n\n[Verse]\nC  D  Am  G\nD  C  Am  G', ytId:'K6qj09OHvjw' },
-    { t:"Ain't No Sunshine", a:'Bill Withers', bpm:78, strum:'D D DU', chords:'Am Em G Dm',
-      chart:'[Verse]\nAm  Em  G  Am\nAm  Em  G  Am\nEm  Em  Dm  Dm\nAm  Em  G  Am\n\n[Verse]\nAm  Em  G  Am\nAm  Em  G  Am\nEm  Em  Dm  Dm\nAm  Em  G  Am', ytId:'YuKfiH0Scao' },
+    { t:"Ain't No Sunshine", a:'Bill Withers', bpm:78, strum:'D D DU', chords:'Am Em Dm',
+      chart:'[Verse]\nAm  Am  Em  Am\nAm  Am  Em  Am\nEm  Em  Dm  Dm\nAm  Am  Em  Am\n\n[Verse]\nAm  Am  Em  Am\nAm  Am  Em  Am\nEm  Em  Dm  Dm\nAm  Am  Em  Am', ytId:'YuKfiH0Scao' },
     { t:'Ho Hey', a:'The Lumineers', bpm:103, strum:'D DU UDU', chords:'C F G Am',
       chart:'[Verse]\nC  C  F  C\nC  C  F  C\n\n[Chorus]\nAm  G  C  C\nF  C  G  C\n\n[Verse]\nC  C  F  C\nC  C  F  C', ytId:'zvCBSSwgtg4' },
     { t:'Use Somebody', a:'Kings of Leon', bpm:136, strum:'D DU UDU', chords:'C Am F G',
@@ -8756,15 +8760,15 @@ const SONG_LIBRARY = {
   ],
   hard: [
     { t:'Hotel California', a:'Eagles', bpm:74, strum:'D DU UDU', chords:'Bm F# A E G D Em',
-      chart:'[Verse]\nBm  F#  A  E\nG  D  Em  F#\nBm  F#  A  E\nG  D  Em  F#\n\n[Chorus]\nG  D  F#  Bm\nG  D  Em  F#\nG  D  F#  Bm\nG  D  Em  F#', ytId:'dLl4PZtxia8' },
+      chart:'[Verse]\nBm  F#  A  E\nG  D  Em  F#\nBm  F#  A  E\nG  D  Em  F#\n\n[Chorus]\nBm  F#  A  E\nG  D  Em  F#\nBm  F#  A  E\nG  D  Em  F#', ytId:'dLl4PZtxia8' },
     { t:'Creep', a:'Radiohead', bpm:92, strum:'D D DU DU', chords:'G B C Cm',
       chart:'[Verse]\nG  G  B  B\nC  C  Cm  Cm\nG  G  B  B\nC  C  Cm  Cm\n\n[Chorus]\nG  G  B  B\nC  C  Cm  Cm', ytId:'XFkzRNyygfk' },
     { t:'Wicked Game', a:'Chris Isaak', bpm:110, strum:'D DU UDU', chords:'Bm A E',
       chart:'[Verse]\nBm  A  E  E\nBm  A  E  E\nBm  A  E  E\n\n[Chorus]\nBm  A  E  E\nBm  A  E  E\nBm  A  E  E', ytId:'jd-qI62gNJM' },
     { t:'Hey Jude', a:'The Beatles', bpm:74, strum:'D DU UDU', chords:'F C C7 Bb',
       chart:'[Verse]\nF  C  C7  F\nBb  F  C  F\nF  C  C7  F\nBb  F  C  F\n\n[Outro]\nF  Bb  C  F\nF  Bb  C  F\nF  Bb  C  F', ytId:'A_MjCqQoLLA' },
-    { t:'While My Guitar Gently Weeps', a:'The Beatles', bpm:115, strum:'D DU UDU', chords:'Am G D F C E',
-      chart:'[Verse]\nAm  G  D  F\nAm  G  C  E\nAm  G  D  F\nAm  G  C  E\n\n[Chorus]\nA  F#m  Bm  Bm\nA  F#m  Bm  E', ytId:'bI8P6ZSHSvE' },
+    { t:'While My Guitar Gently Weeps', a:'The Beatles', bpm:115, strum:'D DU UDU', chords:'Am G D F C E A F#m Bm',
+      chart:'[Verse]\nAm  G  D  F\nAm  G  C  E\nAm  G  D  F\nAm  G  C  E\n\n[Bridge]\nA  F#m  Bm  Bm\nA  F#m  Bm  E', ytId:'bI8P6ZSHSvE' },
     { t:'Under the Bridge', a:'Red Hot Chili Peppers', bpm:84, strum:'D DU UDU', chords:'D F#m B G A E',
       chart:'[Verse]\nD  F#m  D  F#m\nB  G  B  G\nD  F#m  D  F#m\nB  G  A  A\n\n[Verse]\nD  F#m  D  F#m\nB  G  B  G', ytId:'GLvohMXgcBo' },
     { t:'Nothing Compares 2 U', a:"Sinead O'Connor", bpm:58, strum:'D DU', chords:'F C Bb Am G',
@@ -8904,6 +8908,7 @@ function doYtSync() {
 }
 document.getElementById('ytSyncBtn').addEventListener('click', doYtSync);
 document.getElementById('saSyncNudgeBtn').addEventListener('click', doYtSync);
+document.getElementById('saResyncBtn').addEventListener('click', doYtSync);
 
 /* =====================================================
    PICKING TRAINER — a horizontal neck shows where your finger goes
