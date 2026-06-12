@@ -641,8 +641,9 @@
   #saTop{display:flex;gap:10px;align-items:center;padding:14px 18px}
   #saTitle{font-family:'Fredoka',sans-serif;font-weight:700;font-size:18px;letter-spacing:.04em;margin-right:auto;
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:42vw}
-  #saVolWrap{display:flex;align-items:center;gap:6px;font-size:11px;letter-spacing:.1em;opacity:.85}
+  #saVolWrap,#saYtVolWrap{display:flex;align-items:center;gap:6px;font-size:11px;letter-spacing:.1em;opacity:.85}
   #saVol{width:90px;accent-color:#FFC54D}
+  #saYtVol{width:90px;accent-color:#7EC8E3}
   #saSpeedWrap{display:flex;align-items:center;gap:6px;font-size:11px;letter-spacing:.1em;opacity:.85}
   #saSpeed{width:120px;accent-color:#8FD694}
   #saSpeedLbl{font-family:'Fredoka',sans-serif;font-weight:700;font-size:12px;min-width:38px;color:#CFE8D1}
@@ -724,6 +725,11 @@
     text-transform:uppercase;margin-top:4px}
   @keyframes sPpPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.6;transform:scale(1.08)}}
   #saHighway.wrong-pause #saLane{opacity:.45;transition:opacity .25s}
+  #saCountIn{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    z-index:30;pointer-events:none;font-family:'Fredoka',sans-serif;font-weight:700;
+    font-size:96px;color:#fff;text-shadow:0 4px 28px rgba(0,0,0,.6);
+    animation:saCountPop .35s cubic-bezier(.22,1,.36,1)}
+  @keyframes saCountPop{from{opacity:0;transform:scale(1.5)}to{opacity:1;transform:scale(1)}}
   #saLoopSummary{position:absolute;bottom:72px;left:50%;transform:translateX(-50%) translateY(16px);
     z-index:20;opacity:0;transition:opacity .4s,transform .4s;pointer-events:none;
     background:rgba(18,12,32,.88);border:1.5px solid rgba(240,169,60,.45);border-radius:16px;
@@ -1121,14 +1127,17 @@
     <span id="saBpmLbl" class="hud-label"></span>
     <label id="saSpeedWrap">speed <input type="range" id="saSpeed" min="40" max="100" step="5" value="100"><span id="saSpeedLbl">100%</span></label>
     <button class="pill-btn" id="saResyncBtn">Resync</button>
+    <button class="pill-btn" id="saReset">&#8635; Reset</button>
     <button class="pill-btn" id="saBandBtn">Synth: off</button>
     <label id="saVolWrap">synth vol <input type="range" id="saVol" min="0" max="100" value="80"></label>
+    <label id="saYtVolWrap">yt vol <input type="range" id="saYtVol" min="0" max="100" value="100"></label>
     <button class="pill-btn" id="saPause">Pause</button>
     <button class="pill-btn" id="saChallengeBtn">Challenge: off</button>
     <button class="pill-btn" id="saBack">Back</button>
   </div>
   <div id="saSyncNudge">Tap when the first chord hits &rarr; <button class="pill-btn" id="saSyncNudgeBtn">Sync now</button></div>
   <div id="saHighway">
+    <div id="saCountIn" style="display:none"></div>
     <div id="saStrike"></div>
     <div id="saLane"></div>
     <div id="saPausePrompt" style="display:none">
@@ -6582,6 +6591,10 @@ function saUpdateBpmLbl() {
     + ' \u00b7 loops forever';
 }
 function saStart(parsed) {
+  // cancel any lingering animation frame from a previous session
+  sa.on = false;
+  cancelAnimationFrame(sa.raf);
+  clearTimeout(sa.timer);
   sa.speed = 1;
   sa.lastMissFx = 0;
   const spd = document.getElementById('saSpeed');
@@ -6624,10 +6637,25 @@ function saStart(parsed) {
   sa.summaryTimer = null;
   sa.on = true; sa.paused = false;
   sa.shownIdx = -1; sa.lastLyric = -1; sa.passBase = 0; sa.idx = 0; sa.hitT = 0;
-  const spb = 60 / sa.bpm / sa.speed;
-  sa.startAt = audio.ctx.currentTime + spb * 4 + 0.1;     // one bar to breathe in
-  for (let k = 0; k < 4; k++) metroTick(sa.startAt - (4 - k) * spb, k === 0);
+  const LEAD_IN = 3.1;
+  sa.startAt = audio.ctx.currentTime + LEAD_IN;
+  // metro ticks at 1s intervals during countdown
+  for (let k = 0; k < 4; k++) metroTick(audio.ctx.currentTime + k * (LEAD_IN / 4), k === 0);
   document.getElementById('strumStage').style.display = 'flex';
+  // 3-2-1 visual countdown
+  const ctEl = document.getElementById('saCountIn');
+  function _showCount(txt) {
+    if (!ctEl) return;
+    ctEl.textContent = txt;
+    ctEl.style.display = 'flex';
+    ctEl.style.animation = 'none';
+    void ctEl.offsetWidth; // reflow to restart animation
+    ctEl.style.animation = '';
+  }
+  _showCount('3');
+  sa._countTimer1 = setTimeout(() => _showCount('2'), 1000);
+  sa._countTimer2 = setTimeout(() => _showCount('1'), 2000);
+  sa._countTimer3 = setTimeout(() => { _showCount('GO!'); sa._countTimer4 = setTimeout(() => { if (ctEl) ctEl.style.display = 'none'; }, 400); }, 3000);
   saScheduler();
   saRender();
   // auto-start YT video: with sync offset, seek to (offset - leadIn) and start immediately
@@ -6684,6 +6712,9 @@ function saStop() {
   clearTimeout(sa.timer);
   if (sa.summaryTimer) clearTimeout(sa.summaryTimer);
   cancelAnimationFrame(sa.raf);
+  if (yt.player && yt.player.pauseVideo) try { yt.player.pauseVideo(); } catch(e) {}
+  const ctEl = document.getElementById('saCountIn');
+  if (ctEl) { ctEl.style.display = 'none'; clearTimeout(sa._countTimer1); clearTimeout(sa._countTimer2); clearTimeout(sa._countTimer3); clearTimeout(sa._countTimer4); }
   const sumEl = document.getElementById('saLoopSummary');
   if (sumEl) { sumEl.style.display = 'none'; sumEl.classList.remove('show'); }
   document.getElementById('strumStage').style.display = 'none';
@@ -6718,6 +6749,8 @@ function saSetSpeed(ns) {
   sa.idx = sa.events.findIndex(e => e.t >= (wasPos % sa.total) - 0.01);
   if (sa.idx < 0) sa.idx = sa.events.length;
   saUpdateBpmLbl();
+  // keep YouTube playback rate in lockstep with the strum-along clock
+  if (yt.player && yt.player.setPlaybackRate) try { yt.player.setPlaybackRate(ns); } catch(e2) {}
 }
 document.getElementById('saSpeed').addEventListener('input', (e) => {
   const pct = parseInt(e.target.value, 10);
@@ -6726,6 +6759,9 @@ document.getElementById('saSpeed').addEventListener('input', (e) => {
 });
 document.getElementById('saVol').addEventListener('input', (e) => {
   if (sa.gain && sa.bandOn) sa.gain.gain.value = e.target.value / 100;
+});
+document.getElementById('saYtVol').addEventListener('input', (e) => {
+  if (yt.player && yt.player.setVolume) try { yt.player.setVolume(parseInt(e.target.value, 10)); } catch(e2) {}
 });
 document.getElementById('saBandBtn').addEventListener('click', () => {
   sa.bandOn = !sa.bandOn;
@@ -6743,6 +6779,15 @@ document.getElementById('saChallengeBtn').addEventListener('click', () => {
 document.getElementById('saBack').addEventListener('click', () => {
   saStop();
   document.getElementById('songSetup').style.display = 'flex';
+});
+document.getElementById('saReset').addEventListener('click', () => {
+  if (!sa.parsedRef) return;
+  // stop internals without hiding the stage or navigating away
+  sa.on = false; sa.paused = false;
+  clearTimeout(sa.timer); clearTimeout(sa._countTimer1); clearTimeout(sa._countTimer2); clearTimeout(sa._countTimer3); clearTimeout(sa._countTimer4);
+  cancelAnimationFrame(sa.raf);
+  if (yt.player && yt.player.pauseVideo) try { yt.player.pauseVideo(); } catch(e) {}
+  saStart(sa.parsedRef);
 });
 document.getElementById('strumGoBtn').addEventListener('click', async () => {
   const err = document.getElementById('songError');
