@@ -382,7 +382,7 @@
 
   /* chart */
   #chartView{flex:1;display:flex;flex-direction:column;min-height:0}
-  #nowZone{display:flex;align-items:center;justify-content:center;gap:26px;padding:6px 16px 14px;
+  #nowZone{display:flex;align-items:center;justify-content:center;gap:26px;padding:4px 16px 8px;
     flex-wrap:wrap}
   #nowDiagram{width:110px;min-width:90px;background:rgba(20,12,6,.5);border:1.5px solid var(--line);
     border-radius:14px;padding:8px 6px;display:flex;flex-direction:column;gap:2px;
@@ -390,13 +390,13 @@
   #nowDiagram .prog-label{font-size:9px;letter-spacing:.14em;text-transform:uppercase;
     color:var(--dim);text-align:center;margin-bottom:5px;flex-shrink:0}
   .prog-pill{font-family:'Fredoka',sans-serif;font-size:17px;font-weight:600;
-    padding:3px 0;border-radius:8px;text-align:center;color:rgba(255,243,224,.35);
+    padding:3px 0;border-radius:8px;text-align:center;color:rgba(255,243,224,.7);
     cursor:pointer;transition:color .12s,background .12s;flex-shrink:0}
   .prog-pill.current{background:rgba(240,169,60,.2);color:var(--honey)}
-  .prog-pill:hover{color:rgba(255,243,224,.7)}
+  .prog-pill:hover{color:rgba(255,243,224,.95)}
   #nowMain{text-align:center}
-  #nowDiagramInline{margin-top:10px;display:flex;justify-content:center}
-  #nowChord{font-family:'Fredoka',sans-serif;font-weight:700;font-size:clamp(58px,9vw,96px);line-height:1;color:var(--honey)}
+  #nowDiagramInline{margin-top:5px;display:flex;justify-content:center}
+  #nowChord{font-family:'Fredoka',sans-serif;font-weight:700;font-size:clamp(40px,5.5vw,68px);line-height:1;color:var(--honey)}
   #nowNext{font-size:14px;color:var(--dim);margin-top:4px;font-weight:700}
   #nowNext b{font-family:'Fredoka',sans-serif;color:var(--cream);font-size:18px}
   #strumBar{display:flex;gap:4px;align-items:center;justify-content:center;padding:10px 16px;
@@ -424,8 +424,8 @@
   .sect-head{font-family:'Fredoka',sans-serif;font-weight:600;font-size:15px;color:var(--honey);margin:26px 0 10px}
   .song-line{margin:4px 0 14px;line-height:1}
   .seg{display:inline-block;vertical-align:bottom;min-width:6px;white-space:pre-wrap}
-  .seg .pill{display:inline-block;font-family:'Fredoka',sans-serif;font-weight:600;font-size:19px;
-    padding:6px 16px;margin:0 4px 8px 0;
+  .seg .pill{display:inline-block;font-family:'Fredoka',sans-serif;font-weight:600;font-size:22px;
+    padding:7px 20px;margin:0 5px 10px 0;
     border-radius:999px;background:rgba(247,237,219,.07);border:2px solid var(--line);
     cursor:pointer;transition:color .18s,border-color .18s;color:var(--cream);
     position:relative;overflow:hidden}
@@ -553,6 +553,7 @@
     background:#0A2530;box-shadow:0 10px 26px rgba(20,80,110,.3)}
   #ytFrame iframe{width:100%;height:100%;display:block}
   #ytCtrl{display:flex;gap:5px;justify-content:center}
+  #ytSyncBtn.synced{background:rgba(143,214,148,.2);border-color:#8FD694;color:#8FD694}
   .yt-fallback{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;
     gap:8px;padding:10px;text-align:center}
   .yt-fallback span{font-size:11.5px;font-weight:800;color:rgba(255,255,255,.75)}
@@ -564,7 +565,7 @@
     border-bottom:1.5px solid rgba(185,123,36,.4);padding:7px 14px}
   #songStage #nowDiagram{background:rgba(255,255,255,.55);border-color:rgba(20,72,92,.18)}
   #songStage #nowDiagram .prog-label{color:rgba(20,72,92,.5)}
-  #songStage .prog-pill{color:rgba(20,72,92,.28)}
+  #songStage .prog-pill{color:rgba(20,72,92,.55)}
   #songStage .prog-pill.current{background:rgba(20,72,92,.1);color:#14485C}
   #songStage .prog-pill:hover{color:rgba(20,72,92,.65)}
 
@@ -1011,6 +1012,7 @@
       <button class="pill-btn metro-sm" data-ytspeed="0.5">.5x</button>
       <button class="pill-btn metro-sm" data-ytspeed="0.75">.75x</button>
       <button class="pill-btn metro-sm on" data-ytspeed="1">1x</button>
+      <button class="pill-btn metro-sm" id="ytSyncBtn">Sync</button>
       <button class="pill-btn metro-sm" id="ytHide">Hide</button>
       <span id="ytSpeedTip" style="display:none;font-size:10px;font-weight:800;color:#14485C;align-self:center">slow it down: gear icon &rarr; speed</span>
     </div>
@@ -6361,6 +6363,30 @@ function saRender() {
       sa.chordHits = {};
     }
   }
+  // YT drift correction: if highway clock drifts from YT position by > 250ms, resync once per second
+  if (ytSync.active && ytSync.offset !== null && yt.player && sa.on && !sa.paused && sa.speed === 1) {
+    const _pn = performance.now();
+    if (_pn - ytSync.lastCorr > 1000) {
+      try {
+        const ytNow = yt.player.getCurrentTime ? yt.player.getCurrentTime() : null;
+        if (ytNow !== null) {
+          const rawExp = ytNow - ytSync.offset;
+          const expected = ((rawExp % sa.total) + sa.total) % sa.total;
+          const actual = saPos() % sa.total;
+          const drift = expected - actual;
+          if (Math.abs(drift) > 0.25) {
+            ytSync.lastCorr = _pn;
+            sa.startAt = audio.ctx.currentTime - expected;
+            sa.passBase = 0;
+            sa.idx = sa.events.findIndex(e => e.t >= expected - 0.01);
+            if (sa.idx < 0) sa.idx = sa.events.length;
+            clearTimeout(sa.timer);
+            saScheduler();
+          }
+        }
+      } catch(e) {}
+    }
+  }
   sa.raf = requestAnimationFrame(saRender);
 }
 const SA_CHEERS = ['Nice!', 'Clean!', 'Locked in!', "That's it!", 'Smooth!'];
@@ -6523,19 +6549,21 @@ function saStart(parsed) {
   document.getElementById('strumStage').style.display = 'flex';
   saScheduler();
   saRender();
-  // auto-start YT video when the lead-in bar ends
+  // auto-start YT video: with sync offset, seek to (offset - leadIn) and start immediately
+  // so the video reaches offset exactly when the first chord fires
+  ytSync.lastCorr = 0;
   const ytDock = document.getElementById('ytDock');
   if (ytDock && ytDock.style.display !== 'none' && yt.player && yt.ready) {
-    const leadInMs = Math.max(0, (sa.startAt - audio.ctx.currentTime) * 1000);
-    setTimeout(() => {
-      if (!sa.on) return;
-      try {
+    try {
+      const leadIn = sa.startAt - audio.ctx.currentTime;
+      if (ytSync.active && ytSync.offset !== null) {
+        yt.player.seekTo(Math.max(0, ytSync.offset - leadIn), true);
+      } else {
         const state = yt.player.getPlayerState ? yt.player.getPlayerState() : -1;
-        // only seek to start if video hasn't been manually started by user
         if (state === -1 || state === 5) yt.player.seekTo(0, true);
-        yt.player.playVideo();
-      } catch(e) {}
-    }, leadInMs);
+      }
+      yt.player.playVideo();
+    } catch(e) {}
   }
   return true;
 }
@@ -8700,6 +8728,7 @@ const SONG_LIBRARY = {
    Speed buttons use the player's native rate change, which preserves pitch —
    vocals stay normal, just slower. ---- */
 const yt = { player: null, ready: false, apiLoading: false };
+const ytSync = { offset: null, active: false, songKey: null, lastCorr: 0 };
 function parseYtId(url) {
   if (!url) return null;
   const m = url.match(/(?:youtube\.com\/(?:watch\?.*v=|shorts\/|embed\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/)
@@ -8772,6 +8801,18 @@ document.getElementById('ytHide').addEventListener('click', () => {
   const dock = document.getElementById('ytDock');
   dock.classList.toggle('tucked');
   document.getElementById('ytHide').textContent = dock.classList.contains('tucked') ? 'Show' : 'Hide';
+});
+document.getElementById('ytSyncBtn').addEventListener('click', () => {
+  if (!yt.player || !yt.ready) return;
+  let t = 0;
+  try { t = yt.player.getCurrentTime ? yt.player.getCurrentTime() : 0; } catch(e) {}
+  ytSync.offset = t;
+  ytSync.active = true;
+  ytSync.lastCorr = 0;
+  if (ytSync.songKey) pSave('ytoff_' + ytSync.songKey, t);
+  const btn = document.getElementById('ytSyncBtn');
+  btn.textContent = t.toFixed(1) + 's';
+  btn.classList.add('synced');
 });
 
 /* =====================================================
@@ -9090,6 +9131,18 @@ function buildSongLib() {
         document.getElementById('ytUrl').value = s.ytId || '';
         if (s.ytId) showYtDock(s.ytId); else hideYtDock();
         selectedSong = { t: s.t, a: s.a };
+        // load saved sync offset for this song
+        ytSync.songKey = (s.t + '_' + (s.a || '')).replace(/\s+/g, '_');
+        const savedOffset = pLoad('ytoff_' + ytSync.songKey, null);
+        if (savedOffset !== null) {
+          ytSync.offset = savedOffset; ytSync.active = true;
+          const sb = document.getElementById('ytSyncBtn');
+          if (sb) { sb.textContent = savedOffset.toFixed(1) + 's'; sb.classList.add('synced'); }
+        } else {
+          ytSync.offset = null; ytSync.active = false;
+          const sb = document.getElementById('ytSyncBtn');
+          if (sb) { sb.textContent = 'Sync'; sb.classList.remove('synced'); }
+        }
         // bring the Start button into view so there's no hunting for it
         document.getElementById('songLoadBtn').scrollIntoView({ behavior: 'smooth', block: 'center' });
       });
@@ -9386,7 +9439,7 @@ function setCursor(idx, fromClick) {
   document.getElementById('nowNext').innerHTML = 'next: <b>' + (nxt ? nxt.display : '--') + '</b>';
   // inline chord diagram
   const diagEl = document.getElementById('nowDiagramInline');
-  if (diagEl) diagEl.innerHTML = cur && cur.base && CHORD_SHAPES[cur.base] ? chordSVG(cur.base, 90) : '';
+  if (diagEl) diagEl.innerHTML = cur && cur.base && CHORD_SHAPES[cur.base] ? chordSVG(cur.base, 65) : '';
   // left chord list
   const progList = document.getElementById('nowDiagram');
   const curName = cur ? cur.display : null;
@@ -9432,6 +9485,21 @@ function songLoop() {
     if (audio.ready) pkListen(now);
     requestAnimationFrame(songLoop);
     return;
+  }
+  // YT-driven cursor: when sync is active and YT is playing, advance chord cursor by video position
+  if (ytSync.active && ytSync.offset !== null && yt.player && songState.phase === 'chart') {
+    try {
+      const ytNow = yt.player.getCurrentTime ? yt.player.getCurrentTime() : null;
+      const ytState = yt.player.getPlayerState ? yt.player.getPlayerState() : -1;
+      if (ytNow !== null && ytState === 1 && metro.baseBpm > 0) {
+        const elapsed = ytNow - ytSync.offset;
+        if (elapsed >= 0) {
+          const chordDur = 4 * 60 / metro.baseBpm;
+          const expectedIdx = Math.min(Math.floor(elapsed / chordDur), songState.seq.length);
+          if (expectedIdx !== songState.cursor) setCursor(expectedIdx, false);
+        }
+      }
+    } catch(e) {}
   }
   const heard = audio.ready ? detector.update(now) : null;
 
