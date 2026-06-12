@@ -384,8 +384,16 @@
   #chartView{flex:1;display:flex;flex-direction:column;min-height:0}
   #nowZone{display:flex;align-items:center;justify-content:center;gap:26px;padding:6px 16px 14px;
     flex-wrap:wrap}
-  #nowDiagram{width:108px;background:rgba(20,12,6,.5);border:1.5px solid var(--line);
-    border-radius:14px;padding:7px}
+  #nowDiagram{width:110px;min-width:90px;background:rgba(20,12,6,.5);border:1.5px solid var(--line);
+    border-radius:14px;padding:8px 6px;display:flex;flex-direction:column;gap:2px;
+    overflow-y:auto;max-height:230px;align-self:stretch}
+  #nowDiagram .prog-label{font-size:9px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--dim);text-align:center;margin-bottom:5px;flex-shrink:0}
+  .prog-pill{font-family:'Fredoka',sans-serif;font-size:17px;font-weight:600;
+    padding:3px 0;border-radius:8px;text-align:center;color:rgba(255,243,224,.35);
+    cursor:pointer;transition:color .12s,background .12s;flex-shrink:0}
+  .prog-pill.current{background:rgba(240,169,60,.2);color:var(--honey)}
+  .prog-pill:hover{color:rgba(255,243,224,.7)}
   #nowMain{text-align:center}
   #nowChord{font-family:'Fredoka',sans-serif;font-weight:700;font-size:clamp(58px,9vw,96px);line-height:1;color:var(--honey)}
   #nowNext{font-size:14px;color:var(--dim);margin-top:4px;font-weight:700}
@@ -548,8 +556,11 @@
   #capoBanner{text-align:center;font-family:'Fredoka',sans-serif;font-weight:600;font-size:14px;
     color:#7A4D00;background:rgba(240,169,60,.3);border-top:1.5px solid rgba(185,123,36,.4);
     border-bottom:1.5px solid rgba(185,123,36,.4);padding:7px 14px}
-  /* diagrams stay as dark chips so the cream fretboards read */
-  #songStage #nowDiagram{background:#2A1A0E;border-color:rgba(20,72,92,.25)}
+  #songStage #nowDiagram{background:rgba(255,255,255,.55);border-color:rgba(20,72,92,.18)}
+  #songStage #nowDiagram .prog-label{color:rgba(20,72,92,.5)}
+  #songStage .prog-pill{color:rgba(20,72,92,.28)}
+  #songStage .prog-pill.current{background:rgba(20,72,92,.1);color:#14485C}
+  #songStage .prog-pill:hover{color:rgba(20,72,92,.65)}
 
   /* chord-only lines get measure bars, like a real chart */
   .song-line.bars .seg:not(:first-child)::before{content:'';display:inline-block;width:1.5px;height:22px;
@@ -8530,11 +8541,11 @@ const SONG_LIBRARY = {
       chart:'KARMA_DEFAULT', ytId:'1uYWYWPc9HU' },
     { t:'Let It Be', a:'The Beatles', bpm:73, strum:'D DU UDU', chords:'C G Am F',
       chart:'[Verse]\nC  G  Am  F\nC  G  F  C\nC  G  Am  F\nC  G  F  C\n\n[Chorus]\nAm  G  F  C\nC  G  F  C', ytId:'CGj85pVzRJs' },
-    { t:'Wonderwall', a:'Oasis', bpm:87, strum:'D DU UDU (capo 2 on the record)', chords:'Em G D A C',
+    { t:'Wonderwall', a:'Oasis', bpm:87, capo:2, strum:'D DU UDU', chords:'Em G D A C',
       chart:'[Verse]\nEm  G  D  A\nEm  G  D  A\nEm  G  D  A\nC  D  A  A\n\n[Chorus]\nC  Em  G  Em\nC  Em  G  Em\nC  Em  G  Em  A', ytId:'6hzrDeceEKc' },
-    { t:'House of the Rising Sun', a:'The Animals', bpm:77, strum:'D DU DU (6/8 feel)', chords:'Am C D F E',
+    { t:'House of the Rising Sun', a:'The Animals', bpm:77, strum:'D DU DU', chords:'Am C D F E',
       chart:'[Verse]\nAm  C  D  F\nAm  C  E  E\nAm  C  D  F\nAm  E  Am  E\n\n[Verse]\nAm  C  D  F\nAm  C  E  E\nAm  C  D  F\nAm  E  Am  E', ytId:'glS7gYWHxGI' },
-    { t:'Hallelujah', a:'Leonard Cohen', bpm:56, strum:'D DU (slow 6/8)', chords:'C Am F G E',
+    { t:'Hallelujah', a:'Leonard Cohen', bpm:56, strum:'D DU', chords:'C Am F G E',
       chart:'[Verse]\nC  Am  C  Am\nF  G  C  G\nC  F  G  Am  F\nG  E  Am  Am\n\n[Chorus]\nF  F  Am  Am\nF  F  C  G  C', ytId:'ttEMYvpoR-k' },
     { t:'No Woman No Cry', a:'Bob Marley', bpm:79, strum:'D DU UDU', chords:'C G Am F',
       chart:'[Chorus]\nC  G  Am  F\nC  F  C  G\n\n[Verse]\nC  G  Am  F\nC  G  Am  F\nC  G  Am  F\nC  F  C  G', ytId:'IT8XvzIfi4U' },
@@ -9197,7 +9208,7 @@ function buildSongStage(parsed) {
     const lbl = document.createElement('span');
     lbl.className = 'sb-label'; lbl.textContent = 'Strum';
     sb.appendChild(lbl);
-    for (const ch of parsed.strum.split('')) {
+    for (const ch of parsed.strum.replace(/\s*\(.*?\)\s*/g, '').trim().split('')) {
       if (ch === ' ') { const gap = document.createElement('span'); gap.className = 'strum-gap'; sb.appendChild(gap); continue; }
       const up = ch.toUpperCase();
       const chip = document.createElement('span');
@@ -9292,7 +9303,13 @@ function setCursor(idx, fromClick) {
   const nxt = songState.seq[songState.cursor + 1];
   document.getElementById('nowChord').textContent = cur ? cur.display : 'Done!';
   document.getElementById('nowNext').innerHTML = 'next: <b>' + (nxt ? nxt.display : '--') + '</b>';
-  document.getElementById('nowDiagram').innerHTML = cur && cur.base && CHORD_SHAPES[cur.base] ? chordSVG(cur.base, 100) : '';
+  const progList = document.getElementById('nowDiagram');
+  const curName = cur ? cur.display : null;
+  progList.querySelectorAll('.prog-pill').forEach(el => {
+    el.classList.toggle('current', el.dataset.chord === curName);
+  });
+  const activePill = progList.querySelector('.prog-pill.current');
+  if (activePill) activePill.scrollIntoView({ block: 'nearest', behavior: REDUCED_MOTION ? 'auto' : 'smooth' });
   document.getElementById('songDone').style.display = songState.cursor >= songState.seq.length ? 'block' : 'none';
   if (songState.cursor >= songState.seq.length && !fromClick) playChime();
   updateSongProgress();
@@ -9302,6 +9319,19 @@ function startChartPhase() {
   songState.phase = 'chart';
   document.getElementById('gauntletView').style.display = 'none';
   document.getElementById('chartView').style.display = 'flex';
+  // build progression panel (unique chords in first-appearance order)
+  const progList = document.getElementById('nowDiagram');
+  progList.innerHTML = '<div class="prog-label">Chords</div>';
+  const seen = new Set();
+  songState.seq.forEach(s => {
+    if (seen.has(s.display)) return;
+    seen.add(s.display);
+    const pill = document.createElement('div');
+    pill.className = 'prog-pill';
+    pill.dataset.chord = s.display;
+    pill.textContent = s.display;
+    progList.appendChild(pill);
+  });
   setCursor(0, true);
 }
 
