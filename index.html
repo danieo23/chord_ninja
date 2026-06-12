@@ -395,6 +395,7 @@
   .prog-pill.current{background:rgba(240,169,60,.2);color:var(--honey)}
   .prog-pill:hover{color:rgba(255,243,224,.7)}
   #nowMain{text-align:center}
+  #nowDiagramInline{margin-top:10px;display:flex;justify-content:center}
   #nowChord{font-family:'Fredoka',sans-serif;font-weight:700;font-size:clamp(58px,9vw,96px);line-height:1;color:var(--honey)}
   #nowNext{font-size:14px;color:var(--dim);margin-top:4px;font-weight:700}
   #nowNext b{font-family:'Fredoka',sans-serif;color:var(--cream);font-size:18px}
@@ -423,15 +424,20 @@
   .sect-head{font-family:'Fredoka',sans-serif;font-weight:600;font-size:15px;color:var(--honey);margin:26px 0 10px}
   .song-line{margin:4px 0 14px;line-height:1}
   .seg{display:inline-block;vertical-align:bottom;min-width:6px;white-space:pre-wrap}
-  .seg .pill{display:inline-block;font-family:'Fredoka',sans-serif;font-weight:600;font-size:15px;
-    padding:4px 11px;margin:0 2px 4px 0;
+  .seg .pill{display:inline-block;font-family:'Fredoka',sans-serif;font-weight:600;font-size:19px;
+    padding:6px 16px;margin:0 4px 8px 0;
     border-radius:999px;background:rgba(247,237,219,.07);border:2px solid var(--line);
-    cursor:pointer;transition:all .18s;color:var(--cream)}
+    cursor:pointer;transition:color .18s,border-color .18s;color:var(--cream);
+    position:relative;overflow:hidden}
   .seg .lyr{display:block;font-size:16px;line-height:1.45;color:rgba(247,237,219,.85);white-space:pre-wrap;min-height:1.45em;font-weight:600}
-  .seg .pill.done{background:rgba(143,214,148,.15);border-color:var(--leaf);color:var(--leaf)}
-  .seg .pill.current{background:rgba(240,169,60,.16);border-color:var(--honey);color:var(--honey);
-    animation:pillPulse 1.1s ease-in-out infinite}
-  @keyframes pillPulse{0%,100%{box-shadow:0 0 0 0 rgba(240,169,60,.45)}50%{box-shadow:0 0 0 8px rgba(240,169,60,0)}}
+  .seg .pill.done{background:rgba(143,214,148,.12);border-color:var(--leaf);color:var(--leaf)}
+  .seg .pill.current{
+    background-image:linear-gradient(to right,rgba(240,169,60,.55) 50%,rgba(240,169,60,.1) 50%);
+    background-size:200% 100%;background-position:100% 0;
+    border-color:var(--honey);color:var(--honey);font-size:21px;
+    animation:pillFill var(--kfill,2s) linear forwards,pillGlow 1s ease-in-out infinite}
+  @keyframes pillFill{to{background-position:0% 0}}
+  @keyframes pillGlow{0%,100%{box-shadow:0 0 0 0 rgba(240,169,60,.55)}50%{box-shadow:0 0 0 7px rgba(240,169,60,0)}}
   .seg .pill.wrongFlash{border-color:var(--coral);color:var(--coral);animation:none}
   .seg .pill.nodetect{border-style:dashed;opacity:.75}
   .seg .pill.playing{background:rgba(143,214,148,.1);border-color:var(--leaf);border-style:dashed;color:var(--leaf)}
@@ -1028,6 +1034,7 @@
       <div id="nowMain">
         <div id="nowChord">--</div>
         <div id="nowNext">next: <b>--</b></div>
+        <div id="nowDiagramInline"></div>
       </div>
       <div id="metroBox">
         <div class="hud-label" style="letter-spacing:.16em;margin-bottom:4px">Metronome</div>
@@ -1094,7 +1101,7 @@
     <div id="saLane"></div>
     <div id="saPausePrompt" style="display:none">
       <div id="sPpChord"></div>
-      <div id="sPpHint">strum this to continue</div>
+      <div id="sPpHint">1 sec rewind</div>
     </div>
   </div>
   <div id="saBottom">
@@ -5982,7 +5989,7 @@ function aiSuggestNext(bases) {
 const sa = { on: false, paused: false, seq: [], events: [], total: 0, chordDur: 0,
   startAt: 0, pausedPos: 0, passBase: 0, idx: 0, timer: null, speed: 1, bpm: 75,
   gain: null, lastLyric: -1, pills: [], raf: 0, hitT: 0,
-  pauseMode: false, wrongPauseAt: 0, pauseReason: null, ytPausedTime: null };
+  pauseMode: false, wrongPauseAt: 0 };
 
 function saRootMidi(base) {
   const m = base && base.match(/^([A-G][#b]?)/);
@@ -6313,8 +6320,8 @@ function saRender() {
     if (active) activeIdx = i;
   });
   if (activeIdx >= 0) saShowChord(activeIdx);
-  // mic: listen during normal play AND during wrong-chord pause (player must strum correctly to resume)
-  if ((!sa.paused || sa.pauseReason === 'wrong') && audio.ready && activeIdx >= 0) {
+  // mic: listen during normal play
+  if (!sa.paused && audio.ready && activeIdx >= 0) {
     // always use raw mic (not echo-cancelled) -- echo cancellation strips guitar signal
     const savedUseAlt = audio.useAlt;
     audio.useAlt = false;
@@ -6335,9 +6342,9 @@ function saRender() {
         if (CHORD_SHAPES[heard]) {
           heardEl.classList.add('bad');
           heardEl.textContent = 'heard ' + heard + ', try ' + sa.seq[activeIdx].display;
-          // challenge mode: wrong known chord pauses everything
-          if (sa.pauseMode && !sa.paused && performance.now() - sa.wrongPauseAt > 2000) {
-            saPauseOnWrong(sa.seq[activeIdx].display);
+          // challenge mode: wrong known chord = rewind 1 second
+          if (sa.pauseMode && performance.now() - sa.wrongPauseAt > 2000) {
+            saWrongFlash(sa.seq[activeIdx].display);
           }
         }
       }
@@ -6364,7 +6371,6 @@ function saRingRect() {
 function saCelebrate(idx) {
   if (sa.cheerIdx === idx) return;               // one party per chord
   sa.cheerIdx = idx;
-  if (sa.paused && sa.pauseReason === 'wrong') saResumeFromWrong();
   if (sa.seq[idx]) sa.chordHits[sa.seq[idx].display] = (sa.chordHits[sa.seq[idx].display] || 0) + 1;
   const r = saRingRect();
   // green pop of the strike zone itself
@@ -6422,38 +6428,34 @@ function saMissFlash() {
   document.body.appendChild(box);
   setTimeout(() => box.remove(), 650);
 }
-function saPauseOnWrong(chordName) {
-  if (sa.paused) return;
-  sa.paused = true;
-  sa.pauseReason = 'wrong';
-  sa.wrongPauseAt = performance.now();
-  sa.cheerIdx = -1;   // allow the correct chord to re-trigger saCelebrate
-  sa.pausedPos = saPos() % sa.total;
+function saSeekBack(seconds) {
+  const newPos = Math.max(0, saPos() % sa.total - seconds);
+  sa.startAt = audio.ctx.currentTime - newPos;
+  sa.passBase = 0;
+  sa.idx = sa.events.findIndex(e => e.t >= newPos - 0.01);
+  if (sa.idx < 0) sa.idx = sa.events.length;
   clearTimeout(sa.timer);
-  if (yt.player && yt.player.pauseVideo) try {
-    sa.ytPausedTime = yt.player.getCurrentTime ? yt.player.getCurrentTime() : null;
-    yt.player.pauseVideo();
+  saScheduler();
+}
+function saWrongFlash(chordName) {
+  sa.wrongPauseAt = performance.now();
+  // rewind highway 1 second
+  saSeekBack(1.0);
+  // rewind YT 1 second
+  if (yt.player) try {
+    const ytNow = yt.player.getCurrentTime ? yt.player.getCurrentTime() : 0;
+    if (yt.player.seekTo) yt.player.seekTo(Math.max(0, ytNow - 1.0), true);
   } catch(e) {}
+  // brief visual: show chord name for 1.5s
   document.getElementById('sPpChord').textContent = chordName;
   document.getElementById('saPausePrompt').style.display = '';
   document.getElementById('saHighway').classList.add('wrong-pause');
+  clearTimeout(sa._wrongTimer);
+  sa._wrongTimer = setTimeout(() => {
+    document.getElementById('saPausePrompt').style.display = 'none';
+    document.getElementById('saHighway').classList.remove('wrong-pause');
+  }, 1500);
   saMissFlash();
-}
-function saResumeFromWrong() {
-  if (sa.pauseReason !== 'wrong') return;
-  sa.paused = false;
-  sa.pauseReason = null;
-  sa.startAt = audio.ctx.currentTime - sa.pausedPos;
-  sa.passBase = 0;
-  sa.idx = sa.events.findIndex(e => e.t >= sa.pausedPos - 0.01);
-  if (sa.idx < 0) sa.idx = sa.events.length;
-  if (yt.player && yt.player.playVideo) try {
-    if (sa.ytPausedTime !== null && yt.player.seekTo) yt.player.seekTo(sa.ytPausedTime, true);
-    yt.player.playVideo();
-  } catch(e) {}
-  document.getElementById('saPausePrompt').style.display = 'none';
-  document.getElementById('saHighway').classList.remove('wrong-pause');
-  saScheduler();
 }
 function saShowChord(i) {
   if (sa.shownIdx === i) return;
@@ -6501,7 +6503,8 @@ function saStart(parsed) {
   document.getElementById('saHeard').innerHTML = '&nbsp;';
   document.getElementById('saHeard').classList.remove('bad');
   sa.cheerIdx = -1; sa.missT = 0;
-  sa.wrongPauseAt = 0; sa.pauseReason = null; sa.ytPausedTime = null;
+  sa.wrongPauseAt = 0;
+  clearTimeout(sa._wrongTimer);
   document.getElementById('saPausePrompt').style.display = 'none';
   document.getElementById('saHighway').classList.remove('wrong-pause');
   document.getElementById('saBuddy').innerHTML = fruitBuddy('strum');
@@ -6520,6 +6523,20 @@ function saStart(parsed) {
   document.getElementById('strumStage').style.display = 'flex';
   saScheduler();
   saRender();
+  // auto-start YT video when the lead-in bar ends
+  const ytDock = document.getElementById('ytDock');
+  if (ytDock && ytDock.style.display !== 'none' && yt.player && yt.ready) {
+    const leadInMs = Math.max(0, (sa.startAt - audio.ctx.currentTime) * 1000);
+    setTimeout(() => {
+      if (!sa.on) return;
+      try {
+        const state = yt.player.getPlayerState ? yt.player.getPlayerState() : -1;
+        // only seek to start if video hasn't been manually started by user
+        if (state === -1 || state === 5) yt.player.seekTo(0, true);
+        yt.player.playVideo();
+      } catch(e) {}
+    }, leadInMs);
+  }
   return true;
 }
 function showSaLoopSummary() {
@@ -6567,12 +6584,6 @@ document.getElementById('saPause').addEventListener('click', () => {
     document.getElementById('saPause').textContent = 'Resume';
     if (yt.player && yt.player.pauseVideo) try { yt.player.pauseVideo(); } catch(e) {}
   } else {
-    // if we were in a wrong-chord pause, clean that state up
-    if (sa.pauseReason === 'wrong') {
-      sa.pauseReason = null;
-      document.getElementById('saPausePrompt').style.display = 'none';
-      document.getElementById('saHighway').classList.remove('wrong-pause');
-    }
     sa.paused = false;
     sa.startAt = audio.ctx.currentTime - sa.pausedPos;
     sa.passBase = 0;
@@ -6608,8 +6619,6 @@ document.getElementById('saChallengeBtn').addEventListener('click', () => {
   const btn = document.getElementById('saChallengeBtn');
   btn.textContent = 'Challenge: ' + (sa.pauseMode ? 'on' : 'off');
   btn.classList.toggle('on', sa.pauseMode);
-  // if turning off while in wrong-chord pause, resume automatically
-  if (!sa.pauseMode && sa.paused && sa.pauseReason === 'wrong') saResumeFromWrong();
 });
 document.getElementById('saBack').addEventListener('click', () => {
   saStop();
@@ -9375,6 +9384,10 @@ function setCursor(idx, fromClick) {
   const nxt = songState.seq[songState.cursor + 1];
   document.getElementById('nowChord').textContent = cur ? cur.display : 'Done!';
   document.getElementById('nowNext').innerHTML = 'next: <b>' + (nxt ? nxt.display : '--') + '</b>';
+  // inline chord diagram
+  const diagEl = document.getElementById('nowDiagramInline');
+  if (diagEl) diagEl.innerHTML = cur && cur.base && CHORD_SHAPES[cur.base] ? chordSVG(cur.base, 90) : '';
+  // left chord list
   const progList = document.getElementById('nowDiagram');
   const curName = cur ? cur.display : null;
   progList.querySelectorAll('.prog-pill').forEach(el => {
@@ -9382,6 +9395,11 @@ function setCursor(idx, fromClick) {
   });
   const activePill = progList.querySelector('.prog-pill.current');
   if (activePill) activePill.scrollIntoView({ block: 'nearest', behavior: REDUCED_MOTION ? 'auto' : 'smooth' });
+  // karaoke fill: animation duration = chord duration at current BPM
+  if (cur && cur.el && metro.baseBpm > 0) {
+    const fillDur = (60 / (metro.baseBpm * (metro.mult || 1)) * 4).toFixed(2) + 's';
+    cur.el.style.setProperty('--kfill', fillDur);
+  }
   document.getElementById('songDone').style.display = songState.cursor >= songState.seq.length ? 'block' : 'none';
   if (songState.cursor >= songState.seq.length && !fromClick) playChime();
   updateSongProgress();
