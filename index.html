@@ -1588,6 +1588,32 @@ function spawnFruit() {
   });
 }
 
+function spawnBomb() {
+  const isFirst = game.bombsThisSession === 0;
+  game.bombsThisSession++;
+  const r = fruitRadius() * 0.82;
+  const bw = r * 2.7; // half-width of the pill shape
+  const x = Math.max(bw + 20, Math.min(W - bw - 20, W * (0.18 + Math.random() * 0.64)));
+  // first bomb falls significantly slower so the player has time to read the sequence
+  const gravScale = isFirst ? 0.36 : 0.50;
+  const g = currentMode.gravity * gravScale * (1 + game.intensity * currentMode.gRamp * 0.4);
+  const apexY = H * (0.12 + Math.random() * 0.1);
+  const vy = -Math.sqrt(2 * g * (H + r - apexY));
+  // pick 3 distinct chords from the active pool
+  const pool = [...currentPool].sort(() => Math.random() - 0.5);
+  const seq = [];
+  for (const c of pool) { if (seq.length < 3) seq.push(c); }
+  while (seq.length < 3) seq.push(currentPool[Math.floor(Math.random() * currentPool.length)]);
+  game.fruits.push({
+    x, y: H + r, vx: (Math.random() - 0.5) * 18,
+    vy, g, r, bw,
+    chord: seq[0],
+    isBomb: true, seq, seqIdx: 0,
+    rot: 0, vrot: 0,
+    sliced: false, age: 0,
+  });
+}
+
 /* ---------- non-pitched SFX (noise-based so they don't confuse the chord detector) ---------- */
 function playSlice() {
   if (!audio.ctx) return;
@@ -1707,14 +1733,77 @@ let comboFlash = { text: '', life: 0 };
 function onChordDetected(chord) {
   document.getElementById('heard').innerHTML = 'Heard: <b>' + chord + '</b>';
   let hit = false;
+  // bomb sequence: wrong chord while engaged (seqIdx>0) explodes it
   for (const f of game.fruits) {
-    if (!f.sliced && f.chord === chord) { sliceFruit(f); hit = true; }
+    if (!f.sliced && f.isBomb) {
+      if (chord === f.seq[f.seqIdx]) {
+        f.seqIdx++;
+        playSlice();
+        hit = true;
+        if (f.seqIdx >= f.seq.length) { bombSuccess(f); return; }
+        return; // consume detection while in sequence
+      } else if (f.seqIdx > 0) {
+        bombExplode(f); return; // wrong chord while committed = kaboom
+      }
+      // seqIdx===0 means not yet engaged: ignore wrong chords, fall through
+    }
   }
-  if (!hit && game.fruits.some(f => !f.sliced)) {
+  // normal fruits
+  for (const f of game.fruits) {
+    if (!f.sliced && !f.isBomb && f.chord === chord) { sliceFruit(f); hit = true; }
+  }
+  if (!hit && game.fruits.some(f => !f.sliced && !f.isBomb)) {
     game.combo = 0; updateHUD();
   }
 }
 
+function bombExplode(f) {
+  f.sliced = true;
+  for (let i = 0; i < 44; i++) {
+    const a = Math.random() * Math.PI * 2, sp = 160 + Math.random() * 380;
+    game.particles.push({
+      x: f.x, y: f.y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 130,
+      r: 3 + Math.random() * 6,
+      color: ['#FF3B3B','#FF7A2A','#FFD700','#FF5C7A'][Math.floor(Math.random() * 4)],
+      life: 1, decay: 1.3,
+    });
+  }
+  game.floaters.push({ x: f.x, y: f.y - f.r, text: 'BOOM!', life: 1.4, color: '#FF4500', scale: 2.2 });
+  flashMiss = 1.4;
+  game.combo = 0; game.lives--;
+  updateHUD();
+  playMiss();
+  if (!REDUCED_MOTION) game.shake = Math.min(22, game.shake + 18);
+  if (game.lives <= 0) endGame();
+}
+function bombMiss(f) {
+  // bomb fell through without being completed
+  game.floaters.push({ x: f.x > W * 0.7 ? f.x - 60 : f.x, y: H * 0.85, text: 'MISSED!', life: 1.2, color: '#FF5C7A', scale: 1.8 });
+  game.lives--; game.combo = 0;
+  updateHUD(); playMiss(); flashMiss = 1;
+  if (!REDUCED_MOTION) game.shake = Math.min(16, game.shake + 14);
+  if (game.lives <= 0) endGame();
+}
+function bombSuccess(f) {
+  f.sliced = true;
+  game.sliced++; game.combo++;
+  game.bestCombo = Math.max(game.bestCombo, game.combo);
+  const pts = Math.round(35 * currentMode.mult * (1 + Math.floor(game.combo / 3)));
+  game.score += pts;
+  updateHUD(true);
+  for (let i = 0; i < 52; i++) {
+    const a = Math.random() * Math.PI * 2, sp = 140 + Math.random() * 440;
+    game.particles.push({
+      x: f.x, y: f.y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 160,
+      r: 2.5 + Math.random() * 5.5,
+      color: ['#FFD700','#FFC54D','#8FD694','#FFFFFF','#FF9F68'][Math.floor(Math.random() * 5)],
+      life: 1, decay: 1.2,
+    });
+  }
+  game.floaters.push({ x: f.x, y: f.y - f.r - 22, text: 'SEQUENCE!', life: 1.7, color: '#FFD700', scale: 2.4 });
+  game.floaters.push({ x: f.x, y: f.y - f.r + 12, text: '+' + pts, life: 1.2, color: '#FFC54D', scale: 1.8 });
+  if (!REDUCED_MOTION) game.shake = Math.min(10, game.shake + 4);
+}
 function updateHUD(scored) {
   const scoreEl = document.getElementById('score');
   scoreEl.textContent = game.score;
@@ -3433,7 +3522,55 @@ function drawThemeHome(now) {
 /* ===== end theme packs ===== */
 
 
+function drawBomb(f) {
+  const bw = f.bw || f.r * 2.7, bh = f.r;
+  const pulse = 0.5 + 0.5 * Math.sin(f.age * 3.8);
+  ctx.save();
+  ctx.translate(f.x, f.y);
+  // outer glow
+  ctx.shadowColor = f.seqIdx > 0 ? '#FF4500' : '#FF8C00';
+  ctx.shadowBlur = 14 + pulse * 9;
+  // pill body
+  const grad = ctx.createLinearGradient(0, -bh, 0, bh);
+  grad.addColorStop(0, '#FFE066');
+  grad.addColorStop(0.45, '#FF8C00');
+  grad.addColorStop(1, '#CC4400');
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.moveTo(-bw + bh, -bh); ctx.lineTo(bw - bh, -bh);
+  ctx.arc(bw - bh, 0, bh, -Math.PI/2, Math.PI/2);
+  ctx.lineTo(-bw + bh, bh);
+  ctx.arc(-bw + bh, 0, bh, Math.PI/2, -Math.PI/2);
+  ctx.closePath(); ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.strokeStyle = f.seqIdx > 0 ? 'rgba(255,255,255,.9)' : 'rgba(255,255,255,.5)';
+  ctx.lineWidth = 2.5; ctx.stroke();
+  ctx.restore();
+  // chord slots (drawn upright, centered on the pill)
+  ctx.save();
+  ctx.translate(f.x, f.y);
+  const slotW = bw * 2 / 3;
+  for (let i = 0; i < f.seq.length; i++) {
+    const done = i < f.seqIdx, active = i === f.seqIdx;
+    const cx = (i - 1) * slotW;
+    const br = bh * 0.46;
+    // badge circle
+    ctx.fillStyle = active ? 'rgba(255,255,255,.92)' : done ? 'rgba(0,0,0,.55)' : 'rgba(0,0,0,.38)';
+    ctx.beginPath(); ctx.arc(cx, 0, br, 0, Math.PI * 2); ctx.fill();
+    if (active) {
+      ctx.strokeStyle = '#FF4500'; ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.arc(cx, 0, br, 0, Math.PI * 2); ctx.stroke();
+    }
+    // text
+    ctx.font = '700 ' + Math.round(bh * 0.68) + 'px Fredoka, sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = active ? '#CC2200' : done ? 'rgba(255,255,255,.45)' : '#FFF8E7';
+    ctx.fillText(done ? '✓' : f.seq[i], cx, 1);
+  }
+  ctx.restore();
+}
 function drawFruit(f) {
+  if (f.isBomb) { drawBomb(f); return; }
   ctx.save();
   ctx.translate(f.x, f.y);
   ctx.rotate(f.rot);
@@ -3557,20 +3694,34 @@ function loop(now) {
       setTimeout(() => { if (game.running) spawnFruit(); }, 400 + Math.random() * 500);
     }
   }
+  // bomb spawning: medium (intensity>0.55) and hard (intensity>0.35) only, never on easy
+  if (currentMode.mult >= 1.5 && game.intensity > (currentMode.mult >= 2 ? 0.35 : 0.55)) {
+    if (!game.fruits.some(f => f.isBomb && !f.sliced)) {
+      game.bombTimer -= dt * 1000;
+      if (game.bombTimer <= 0) {
+        spawnBomb();
+        game.bombTimer = 20000 + Math.random() * 14000;
+      }
+    }
+  }
 
   // physics
   for (const f of game.fruits) {
     if (f.sliced) continue;
     f.age += dt;
     f.vy += f.g * dt; f.x += f.vx * dt; f.y += f.vy * dt; f.rot += f.vrot * dt;
-    if (f.x < f.r) { f.x = f.r; f.vx *= -1; }
-    if (f.x > W - f.r) { f.x = W - f.r; f.vx *= -1; }
+    const hw = f.bw || f.r; // bombs use their half-width for wall bouncing
+    if (f.x < hw) { f.x = hw; f.vx *= -1; }
+    if (f.x > W - hw) { f.x = W - hw; f.vx *= -1; }
   }
   // misses
   for (let i = game.fruits.length - 1; i >= 0; i--) {
     const f = game.fruits[i];
     if (f.sliced) { game.fruits.splice(i, 1); continue; }
-    if (f.vy > 0 && f.y > H + f.r * 2) { game.fruits.splice(i, 1); missFruit(f.chord); }
+    if (f.vy > 0 && f.y > H + f.r * 2) {
+      game.fruits.splice(i, 1);
+      if (f.isBomb) { bombMiss(f); } else { missFruit(f.chord); }
+    }
   }
   // particles
   for (let i = game.particles.length - 1; i >= 0; i--) {
@@ -7617,6 +7768,8 @@ function startGame() {
   game.stains = []; game.dust = [];
   game.elapsed = 0; game.intensity = 0; game.shake = 0;
   game.missLog = {}; game.hitLog = {};
+  game.bombsThisSession = 0;
+  game.bombTimer = 13000 + Math.random() * 6000; // first bomb can't appear until 13-19s in
   flashMiss = 0; comboFlash = { text: '', life: 0 };
   lastSpawnedChord = null;
   game.spawnTimer = 2400; game.lastTime = performance.now();
