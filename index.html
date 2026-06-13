@@ -9274,18 +9274,11 @@ function buildSongLib() {
         document.getElementById('ytUrl').value = s.ytId || '';
         if (s.ytId) showYtDock(s.ytId); else hideYtDock();
         selectedSong = { t: s.t, a: s.a };
-        // load saved sync offset for this song
+        // always reset sync on song entry so the Sync button is always fresh
         ytSync.songKey = (s.t + '_' + (s.a || '')).replace(/\s+/g, '_');
-        const savedOffset = pLoad('ytoff_' + ytSync.songKey, null);
-        if (savedOffset !== null) {
-          ytSync.offset = savedOffset; ytSync.active = true;
-          const sb = document.getElementById('ytSyncBtn');
-          if (sb) { sb.textContent = savedOffset.toFixed(1) + 's'; sb.classList.add('synced'); }
-        } else {
-          ytSync.offset = null; ytSync.active = false;
-          const sb = document.getElementById('ytSyncBtn');
-          if (sb) { sb.textContent = 'Sync'; sb.classList.remove('synced'); }
-        }
+        ytSync.offset = null; ytSync.active = false;
+        const sb = document.getElementById('ytSyncBtn');
+        if (sb) { sb.textContent = 'Sync'; sb.classList.remove('synced'); }
         // bring the Start button into view so there's no hunting for it
         document.getElementById('songLoadBtn').scrollIntoView({ behavior: 'smooth', block: 'center' });
       });
