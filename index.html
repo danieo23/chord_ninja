@@ -10230,7 +10230,8 @@ function buildBeginnerCards() {
   return PATH_CARDS.beginner;
 }
 function renderYourPath() {
-  const row = document.getElementById('yourPathRow');
+  return; // hidden until player arch feature is built
+  const row = document.getElementById('yourPathRow'); // eslint-disable-line no-unreachable
   if (!row) return;
   const tier = recommendationTier();
   const cards = tier === 'beginner' ? buildBeginnerCards() : PATH_CARDS[tier];
