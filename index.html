@@ -795,12 +795,9 @@
 
   #camChordSel,#camRootSel,#camScaleSel{background:rgba(255,255,255,.12);color:#FFF3E0;border:1.5px solid rgba(255,255,255,.28);border-radius:8px;padding:5px 8px;font-family:'Fredoka',sans-serif;font-size:13px}
   #camRootSel,#camScaleSel{display:none}
-  #camCalOverlay{position:absolute;inset:0;background:rgba(0,0,0,.74);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:5;gap:14px;padding:24px}
-  #camCalMsg{font-family:'Fredoka',sans-serif;font-size:26px;font-weight:700;color:#fff;text-align:center;text-shadow:0 2px 14px rgba(0,0,0,.6)}
-  #camCalSub{font-size:13px;color:rgba(255,255,255,.72);text-align:center;max-width:320px;line-height:1.5}
-  #camHandStatus{font-size:12px;font-weight:600;letter-spacing:.06em;padding:5px 16px;border-radius:999px;background:rgba(255,255,255,.1);color:rgba(255,255,255,.55);transition:all .3s}
-  #camHandStatus.detected{background:rgba(143,214,148,.22);color:#8FD694}
-  #camCalDiagram{width:180px;opacity:.9;margin-top:4px}
+  #camDetectStatus{position:absolute;top:12px;left:12px;z-index:4;font-size:12px;font-weight:600;background:rgba(0,0,0,.55);color:rgba(255,255,255,.7);border-radius:8px;padding:4px 10px;pointer-events:none;display:none}
+  #camNudgeRow{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);z-index:4;display:none;gap:8px;align-items:center}
+  .cam-nudge{background:rgba(0,0,0,.6);color:#FFF3E0;border:1.5px solid rgba(255,255,255,.3);border-radius:8px;padding:5px 14px;font-family:'Fredoka',sans-serif;font-size:15px;cursor:pointer}
 </style>
 </head>
 <body>
@@ -1310,39 +1307,16 @@
     <select id="camChordSel"></select>
     <select id="camRootSel"></select>
     <select id="camScaleSel"></select>
-    <button class="pill-btn" id="camCalBtn">&#9678; Calibrate</button>
+    <button class="pill-btn" id="camCalBtn">&#9678; Detect</button>
   </div>
   <div id="camMain">
     <video id="camFeed" autoplay playsinline muted></video>
     <canvas id="camCanvas"></canvas>
-    <div id="camCalOverlay" style="display:none">
-      <div id="camHandStatus">Looking for your hand...</div>
-      <div id="camCalMsg">Hold your guitar and show your fretting hand</div>
-      <div id="camCalSub">We need to see your hand before you tap</div>
-      <svg id="camCalDiagram" viewBox="0 0 180 90" xmlns="http://www.w3.org/2000/svg">
-        <rect x="24" y="32" width="132" height="26" rx="5" fill="#5C3A1A" opacity=".85"/>
-        <line x1="24" y1="38" x2="156" y2="38" stroke="#F0E4C8" stroke-width="1"/>
-        <line x1="24" y1="43" x2="156" y2="43" stroke="#F0E4C8" stroke-width="1.2"/>
-        <line x1="24" y1="48" x2="156" y2="48" stroke="#F0E4C8" stroke-width="1.5"/>
-        <line x1="24" y1="53" x2="156" y2="53" stroke="#F0E4C8" stroke-width="1.8"/>
-        <rect x="24" y="30" width="5" height="30" rx="2" fill="#F0E4C8"/>
-        <line x1="47" y1="31" x2="47" y2="59" stroke="#999" stroke-width="1.5"/>
-        <line x1="68" y1="31" x2="68" y2="59" stroke="#999" stroke-width="1.5"/>
-        <line x1="87" y1="31" x2="87" y2="59" stroke="#999" stroke-width="1.5"/>
-        <line x1="104" y1="31" x2="104" y2="59" stroke="#999" stroke-width="1.5"/>
-        <line x1="119" y1="31" x2="119" y2="59" stroke="#999" stroke-width="1.5"/>
-        <line x1="132" y1="31" x2="132" y2="59" stroke="#999" stroke-width="1.5"/>
-        <circle cx="125" cy="39" r="3.5" fill="#F0A93C"/>
-        <circle cx="125" cy="51" r="3.5" fill="#F0A93C"/>
-        <text x="26" y="24" font-size="9" fill="#F0E4C8" font-family="Fredoka,sans-serif" font-weight="700">TAP 1</text>
-        <text x="108" y="24" font-size="9" fill="#F0A93C" font-family="Fredoka,sans-serif" font-weight="700">TAP 2</text>
-        <line x1="29" y1="25" x2="29" y2="30" stroke="#F0E4C8" stroke-width="2"/>
-        <polygon points="26,30 32,30 29,34" fill="#F0E4C8"/>
-        <line x1="125" y1="25" x2="125" y2="30" stroke="#F0A93C" stroke-width="2"/>
-        <polygon points="122,30 128,30 125,34" fill="#F0A93C"/>
-        <text x="0" y="78" font-size="8" fill="rgba(255,255,255,.5)" font-family="Fredoka,sans-serif">Top of neck</text>
-        <text x="88" y="78" font-size="8" fill="rgba(255,243,176,.7)" font-family="Fredoka,sans-serif">Double dots = fret 12</text>
-      </svg>
+    <div id="camDetectStatus"></div>
+    <div id="camNudgeRow">
+      <button class="cam-nudge" id="camNudgeLeft">&#8592;</button>
+      <span style="font-size:12px;color:rgba(255,255,255,.6)">nudge</span>
+      <button class="cam-nudge" id="camNudgeRight">&#8594;</button>
     </div>
   </div>
   <div id="camBottom">
@@ -10428,15 +10402,15 @@ document.querySelectorAll('.home-sub').forEach(sub => {
 const cameraState = {
   stream: null,
   raf: null,
-  hands: null,           // MediaPipe Hands instance
-  wrist: null,           // { x, y } current wrist in canvas px (null = not detected)
+  hands: null,
+  wrist: null,           // { x, y } current wrist in canvas px
+  wristAtDetect: null,   // wrist position at time of last Detect
   processingFrame: false,
-  mode: 'chord',         // 'chord' | 'scale'
+  mode: 'chord',
   chord: 'Am',
   root: 0,
   scale: 'Pentatonic Minor',
-  cal: null,             // { nutOffX, nutOffY, f12OffX, f12OffY } wrist-relative offsets
-  calStep: 0,            // 0=done, 1=awaiting nut tap, 2=awaiting 12th fret tap
+  board: null,           // { stringYs, nutX, nutY, angle, neckLen } in canvas coords
 };
 
 function camUpdateDiagram() {
@@ -10658,44 +10632,251 @@ function initHandTracking() {
       cameraState.wrist = null;
     }
     cameraState.processingFrame = false;
-    const hs = document.getElementById('camHandStatus');
-    if (hs) {
-      const det = !!cameraState.wrist;
-      hs.textContent = det ? 'Hand detected — now tap on your guitar' : 'Looking for your hand...';
-      hs.className = det ? 'detected' : '';
-    }
   });
   return hands;
 }
 
-function fretToPixel(string, fret, nut, f12) {
-  const t = 1 - Math.pow(0.5, fret / 12);
-  const px = nut.x + (f12.x - nut.x) * (t / 0.5);
-  const py = nut.y + (f12.y - nut.y) * (t / 0.5);
-  const dx = f12.x - nut.x, dy = f12.y - nut.y;
-  const neckLen = Math.hypot(dx, dy) || 1;
-  const stringOffset = (string / 5 - 0.5) * neckLen * 0.32;
-  return { x: px + (-dy / neckLen) * stringOffset, y: py + (dx / neckLen) * stringOffset };
+// --- String / fretboard detection helpers ---
+
+function gaussianSmooth1D(arr, sigma) {
+  const out = new Float32Array(arr.length);
+  const r = Math.ceil(sigma * 2.5);
+  for (let i = 0; i < arr.length; i++) {
+    let sum = 0, w = 0;
+    for (let d = -r; d <= r; d++) {
+      const j = i + d;
+      if (j < 0 || j >= arr.length) continue;
+      const wt = Math.exp(-(d * d) / (2 * sigma * sigma));
+      sum += arr[j] * wt; w += wt;
+    }
+    out[i] = sum / w;
+  }
+  return out;
 }
 
-function drawChordDotsAR(ctx, nut, f12) {
+function findTopNPeaks(arr, n, minSpacing) {
+  const smoothed = gaussianSmooth1D(arr, 3);
+  const candidates = [];
+  for (let i = 1; i < arr.length - 1; i++) {
+    if (smoothed[i] > smoothed[i - 1] && smoothed[i] > smoothed[i + 1]) {
+      candidates.push({ pos: i, val: smoothed[i] });
+    }
+  }
+  candidates.sort((a, b) => b.val - a.val);
+  const result = [];
+  for (const c of candidates) {
+    if (result.every(r => Math.abs(r.pos - c.pos) >= minSpacing)) result.push(c);
+    if (result.length >= n) break;
+  }
+  result.sort((a, b) => a.pos - b.pos);
+  return result;
+}
+
+function scorePeaks(peaks) {
+  if (peaks.length < 2) return 0;
+  const spacings = [];
+  for (let i = 1; i < peaks.length; i++) spacings.push(peaks[i].pos - peaks[i - 1].pos);
+  const avg = spacings.reduce((a, b) => a + b, 0) / spacings.length;
+  const unevenness = spacings.reduce((s, sp) => s + Math.abs(sp - avg), 0) / spacings.length;
+  const brightness = peaks.reduce((s, p) => s + p.val, 0) / peaks.length;
+  return brightness / (1 + unevenness / (avg || 1));
+}
+
+function detectStrings(video) {
+  const oc = document.createElement('canvas');
+  oc.width = video.videoWidth || 640;
+  oc.height = video.videoHeight || 480;
+  const octx = oc.getContext('2d');
+  octx.drawImage(video, 0, 0);
+  const { data, width, height } = octx.getImageData(0, 0, oc.width, oc.height);
+
+  const ANGLES = [-25, -15, -8, 0, 8, 15, 25];
+  let bestResult = null, bestScore = 0;
+
+  for (const deg of ANGLES) {
+    const rad = deg * Math.PI / 180;
+    const cosA = Math.cos(rad), sinA = Math.sin(rad);
+    const cx = width / 2, cy = height / 2;
+    const profile = new Float32Array(height);
+
+    // Sample along the middle 50% of the frame width for each "rotated row"
+    const colStart = Math.floor(width * 0.25);
+    const colEnd   = Math.floor(width * 0.75);
+
+    for (let row = 0; row < height; row++) {
+      let sum = 0, count = 0;
+      for (let col = colStart; col < colEnd; col++) {
+        const sx = Math.round(cx + (col - cx) * cosA - (row - cy) * sinA);
+        const sy = Math.round(cy + (col - cx) * sinA + (row - cy) * cosA);
+        if (sx < 0 || sx >= width || sy < 0 || sy >= height) continue;
+        const idx = (sy * width + sx) * 4;
+        sum += (data[idx] + data[idx + 1] + data[idx + 2]) / 3;
+        count++;
+      }
+      profile[row] = count ? sum / count : 0;
+    }
+
+    const minSpacing = Math.max(4, Math.floor(height * 0.025));
+    const peaks = findTopNPeaks(profile, 6, minSpacing);
+    if (peaks.length < 4) continue;
+
+    const score = scorePeaks(peaks) * peaks.length;
+    if (score > bestScore) {
+      bestScore = score;
+      bestResult = { angle: deg, peaks, profile };
+    }
+  }
+
+  return bestResult;
+}
+
+// Scan perpendicular to detected strings to find fret wires and estimate nutX
+function detectNutX(video, stringYs, angle, canvasWidth, canvasHeight) {
+  const oc = document.createElement('canvas');
+  oc.width = video.videoWidth || 640;
+  oc.height = video.videoHeight || 480;
+  const octx = oc.getContext('2d');
+  octx.drawImage(video, 0, 0);
+  const { data, width, height } = octx.getImageData(0, 0, oc.width, oc.height);
+
+  const scaleX = width / canvasWidth;
+  const scaleY = height / canvasHeight;
+  const rad = angle * Math.PI / 180;
+
+  // For each column in video space, check brightness at each string Y
+  const colProfile = new Float32Array(width);
+  const videoStringYs = stringYs.map(y => y * scaleY);
+
+  for (let col = 0; col < width; col++) {
+    let score = 0;
+    for (const sy of videoStringYs) {
+      // Account for neck angle: at this column, the string y shifts slightly
+      const dy = (col - width / 2) * Math.tan(rad);
+      const adjustedY = Math.round(sy + dy);
+      if (adjustedY < 2 || adjustedY >= height - 2) continue;
+      let localMax = 0;
+      for (let off = -2; off <= 2; off++) {
+        const idx = ((adjustedY + off) * width + col) * 4;
+        localMax = Math.max(localMax, (data[idx] + data[idx + 1] + data[idx + 2]) / 3);
+      }
+      score += localMax;
+    }
+    colProfile[col] = score / videoStringYs.length;
+  }
+
+  // Find fret wire peaks (bright vertical lines crossing strings)
+  const minFretSpacing = Math.floor(width * 0.03);
+  const fretPeaks = findTopNPeaks(colProfile, 12, minFretSpacing);
+
+  if (fretPeaks.length < 2) {
+    // Fall back to left 15% of canvas as nut estimate
+    return canvasWidth * 0.12;
+  }
+
+  // The leftmost fret peak is our best estimate of fret 1 (or nut area)
+  const leftmostFretX = fretPeaks[0].pos / scaleX;
+  // Nudge slightly left to approximate the nut
+  const avgFretSpacing = fretPeaks.length > 1
+    ? (fretPeaks[fretPeaks.length - 1].pos - fretPeaks[0].pos) / (fretPeaks.length - 1) / scaleX
+    : canvasWidth * 0.04;
+  return Math.max(0, leftmostFretX - avgFretSpacing * 0.7);
+}
+
+async function detectFretboard() {
+  const vid = document.getElementById('camFeed');
+  const btn = document.getElementById('camCalBtn');
+  const status = document.getElementById('camDetectStatus');
+  if (!vid || vid.readyState < 2) return;
+
+  if (btn) { btn.textContent = 'Detecting...'; btn.disabled = true; }
+  if (status) { status.textContent = 'Scanning...'; status.style.display = 'block'; }
+
+  // Small yield so the UI updates before the heavy work
+  await new Promise(r => setTimeout(r, 50));
+
+  const result = detectStrings(vid);
+
+  if (!result || result.peaks.length < 4) {
+    if (btn) { btn.textContent = '⊘ Detect'; btn.disabled = false; }
+    if (status) { status.textContent = 'No strings found — try better lighting or zoom in on neck'; status.style.display = 'block'; }
+    setTimeout(() => { if (status) status.style.display = 'none'; }, 4000);
+    return;
+  }
+
+  const canvas = document.getElementById('camCanvas');
+  const scaleY = canvas.height / (vid.videoHeight || 480);
+
+  // Map peak Y positions to canvas space
+  const stringYs = result.peaks.map(p => p.pos * scaleY);
+  const angle = result.angle;
+
+  // Estimate neck length from span of detected string region + some padding
+  const neckLen = canvas.width * 0.52;
+
+  // Detect nut X from fret wire scanning
+  const nutX = detectNutX(vid, stringYs, angle, canvas.width, canvas.height);
+  const nutY = (stringYs[0] + stringYs[stringYs.length - 1]) / 2;
+
+  cameraState.board = { stringYs, nutX, nutY, angle, neckLen };
+  cameraState.wristAtDetect = cameraState.wrist ? { ...cameraState.wrist } : null;
+
+  // Show nudge controls
+  const nudgeRow = document.getElementById('camNudgeRow');
+  if (nudgeRow) nudgeRow.style.display = 'flex';
+
+  if (btn) { btn.textContent = '⊘ Re-detect'; btn.disabled = false; }
+  const strCount = result.peaks.length;
+  if (status) {
+    status.textContent = `${strCount} strings detected`;
+    status.style.display = 'block';
+    setTimeout(() => { if (status) status.style.display = 'none'; }, 3000);
+  }
+}
+
+function fretToPixel(string, fret) {
+  const b = cameraState.board;
+  if (!b) return null;
+
+  let dx = 0, dy = 0;
+  if (cameraState.wrist && cameraState.wristAtDetect) {
+    dx = cameraState.wrist.x - cameraState.wristAtDetect.x;
+    dy = cameraState.wrist.y - cameraState.wristAtDetect.y;
+  }
+
+  const rad = b.angle * Math.PI / 180;
+  const t = (1 - Math.pow(0.5, fret / 12)) / 0.5;
+  const neckDist = b.neckLen * t;
+
+  const stringIdx = Math.max(0, Math.min(5, string));
+  const stringY = (b.stringYs[stringIdx] ?? b.nutY) + dy;
+
+  const x = b.nutX + neckDist * Math.cos(rad) + dx;
+  const y = stringY + neckDist * Math.sin(rad);
+
+  return { x, y };
+}
+
+function drawChordDotsAR(ctx) {
   const shape = CHORD_SHAPES[cameraState.chord];
   if (!shape) return;
   const FC = ['', '#F06292', '#4FC3F7', '#81C784', '#FFB74D'];
   if (shape.barre) {
     const b = shape.barre;
-    const p1 = fretToPixel(b.from, b.fret - 0.5, nut, f12);
-    const p2 = fretToPixel(b.to,   b.fret - 0.5, nut, f12);
-    ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y);
-    ctx.strokeStyle = FC[1]; ctx.lineWidth = 22; ctx.lineCap = 'round';
-    ctx.globalAlpha = 0.82; ctx.stroke(); ctx.globalAlpha = 1; ctx.lineCap = 'butt';
+    const p1 = fretToPixel(b.from, b.fret - 0.5);
+    const p2 = fretToPixel(b.to,   b.fret - 0.5);
+    if (p1 && p2) {
+      ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y);
+      ctx.strokeStyle = FC[1]; ctx.lineWidth = 22; ctx.lineCap = 'round';
+      ctx.globalAlpha = 0.82; ctx.stroke(); ctx.globalAlpha = 1; ctx.lineCap = 'butt';
+    }
   }
   for (let i = 0; i < 6; i++) {
     const f = shape.frets[i]; if (f <= 0) continue;
     const finger = shape.fingers[i];
     const inBarre = shape.barre && f === shape.barre.fret && i >= shape.barre.from && i <= shape.barre.to && finger <= 1;
     if (inBarre) continue;
-    const pos = fretToPixel(i, f - 0.5, nut, f12);
+    const pos = fretToPixel(i, f - 0.5);
+    if (!pos) continue;
     const r = 18;
     ctx.beginPath(); ctx.arc(pos.x, pos.y, r, 0, Math.PI * 2);
     ctx.fillStyle = FC[finger] || '#F0A93C'; ctx.fill();
@@ -10708,14 +10889,15 @@ function drawChordDotsAR(ctx, nut, f12) {
   }
 }
 
-function drawScaleDotsAR(ctx, nut, f12) {
+function drawScaleDotsAR(ctx) {
   const DC = ['#F0A93C','#4FC3F7','#81C784','#F06292','#FFB74D','#CE93D8','#80CBC4'];
   const start = scaleStartFret(cameraState.root, cameraState.scale);
   const end = start + 4;
   const positions = scalePositions(cameraState.root, cameraState.scale)
     .filter(p => p.fret >= start && p.fret <= end);
   for (const { string, fret, degree } of positions) {
-    const pos = fretToPixel(string, fret === 0 ? 0.15 : fret - 0.5, nut, f12);
+    const pos = fretToPixel(string, fret === 0 ? 0.15 : fret - 0.5);
+    if (!pos) continue;
     const r = degree === 0 ? 17 : 11;
     ctx.beginPath(); ctx.arc(pos.x, pos.y, r, 0, Math.PI * 2);
     ctx.fillStyle = DC[degree % 7]; ctx.globalAlpha = degree === 0 ? 1 : 0.75; ctx.fill(); ctx.globalAlpha = 1;
@@ -10727,16 +10909,6 @@ function drawScaleDotsAR(ctx, nut, f12) {
   }
 }
 
-function startCalibration() {
-  cameraState.calStep = 1;
-  const overlay = document.getElementById('camCalOverlay');
-  const msg = document.getElementById('camCalMsg');
-  const sub = document.getElementById('camCalSub');
-  if (overlay) overlay.style.display = 'flex';
-  if (msg) msg.textContent = 'Tap the very TOP of the guitar neck';
-  if (sub) sub.textContent = "That's the end closest to the tuning pegs — the white or black bar at the very top";
-}
-
 function cameraRender() {
   cameraState.raf = requestAnimationFrame(cameraRender);
   const canvas = document.getElementById('camCanvas');
@@ -10746,7 +10918,6 @@ function cameraRender() {
   const ctx = canvas.getContext('2d');
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  // Feed frame to MediaPipe (throttled — only when previous is done)
   if (!cameraState.processingFrame && cameraState.hands) {
     const vid = document.getElementById('camFeed');
     if (vid && vid.readyState >= 2) {
@@ -10755,31 +10926,13 @@ function cameraRender() {
     }
   }
 
-  const w = cameraState.wrist;
-
-  if (!cameraState.cal) {
-    // Not calibrated yet — show wrist dot + virtual HUD
-    if (w) {
-      ctx.beginPath(); ctx.arc(w.x, w.y, 9, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(143,214,148,.8)'; ctx.fill();
-    }
+  if (!cameraState.board) {
     drawVirtualFretboard(ctx, canvas.width, canvas.height);
     return;
   }
 
-  if (!w) {
-    // Calibrated but hand out of frame — dim virtual HUD fallback
-    ctx.globalAlpha = 0.4;
-    drawVirtualFretboard(ctx, canvas.width, canvas.height);
-    ctx.globalAlpha = 1;
-    return;
-  }
-
-  // Calibrated + hand tracked — project dots onto guitar
-  const nut = { x: w.x + cameraState.cal.nutOffX, y: w.y + cameraState.cal.nutOffY };
-  const f12 = { x: w.x + cameraState.cal.f12OffX, y: w.y + cameraState.cal.f12OffY };
-  if (cameraState.mode === 'chord') drawChordDotsAR(ctx, nut, f12);
-  else drawScaleDotsAR(ctx, nut, f12);
+  if (cameraState.mode === 'chord') drawChordDotsAR(ctx);
+  else drawScaleDotsAR(ctx);
 }
 
 async function cameraStart() {
@@ -10796,20 +10949,16 @@ async function cameraStart() {
   const scaleSel = document.getElementById('camScaleSel');
   if (scaleSel) scaleSel.innerHTML = Object.keys(SCALE_INTERVALS).map(k => `<option value="${k}">${k}</option>`).join('');
 
-  const saved = pLoad('camCal_v2');
-  if (saved) cameraState.cal = saved;
-
   camUpdateModeUI();
 
-  // Load MediaPipe Hands
   const btn = document.getElementById('camCalBtn');
   try {
     if (btn) { btn.textContent = 'Loading...'; btn.disabled = true; }
     await loadMediaPipe();
     cameraState.hands = initHandTracking();
-    if (btn) { btn.textContent = '⊘ Calibrate'; btn.disabled = false; }
+    if (btn) { btn.textContent = '⊘ Detect'; btn.disabled = false; }
   } catch(e) {
-    if (btn) { btn.textContent = '⊘ Calibrate'; btn.disabled = false; }
+    if (btn) { btn.textContent = '⊘ Detect'; btn.disabled = false; }
     console.warn('MediaPipe failed to load — hand tracking unavailable:', e);
   }
 
@@ -10831,7 +10980,11 @@ function cameraStop() {
   cancelAnimationFrame(cameraState.raf);
   cameraState.raf = null;
   cameraState.wrist = null;
+  cameraState.wristAtDetect = null;
+  cameraState.board = null;
   cameraState.processingFrame = false;
+  const nudgeRow = document.getElementById('camNudgeRow');
+  if (nudgeRow) nudgeRow.style.display = 'none';
   if (cameraState.hands) { try { cameraState.hands.close(); } catch(_) {} cameraState.hands = null; }
   if (cameraState.stream) { cameraState.stream.getTracks().forEach(t => t.stop()); cameraState.stream = null; }
   const vid = document.getElementById('camFeed');
@@ -10874,29 +11027,16 @@ document.getElementById('camScaleSel').addEventListener('change', e => {
   camUpdateDiagram();
 });
 
-document.getElementById('camCalBtn').addEventListener('click', startCalibration);
+document.getElementById('camCalBtn').addEventListener('click', detectFretboard);
 
-document.getElementById('camCalOverlay').addEventListener('click', function(e) {
-  if (cameraState.calStep === 0 || !cameraState.wrist) return;
-  const canvas = document.getElementById('camCanvas');
-  const rect = canvas.getBoundingClientRect();
-  const clickX = e.clientX - rect.left;
-  const clickY = e.clientY - rect.top;
-  const wx = cameraState.wrist.x, wy = cameraState.wrist.y;
-  const msg = document.getElementById('camCalMsg');
-  const sub = document.getElementById('camCalSub');
-  if (cameraState.calStep === 1) {
-    cameraState.cal = { nutOffX: clickX - wx, nutOffY: clickY - wy, f12OffX: 0, f12OffY: 0 };
-    cameraState.calStep = 2;
-    if (msg) msg.textContent = 'Now tap the TWO DOTS in the middle of the neck';
-    if (sub) sub.textContent = "That's the 12th fret — halfway down the neck. Look for two dots side by side.";
-  } else if (cameraState.calStep === 2) {
-    cameraState.cal.f12OffX = clickX - wx;
-    cameraState.cal.f12OffY = clickY - wy;
-    cameraState.calStep = 0;
-    pSave('camCal_v2', cameraState.cal);
-    this.style.display = 'none';
-  }
+document.getElementById('camNudgeLeft').addEventListener('click', () => {
+  if (!cameraState.board) return;
+  cameraState.board.nutX -= 12;
+});
+
+document.getElementById('camNudgeRight').addEventListener('click', () => {
+  if (!cameraState.board) return;
+  cameraState.board.nutX += 12;
 });
 
 
