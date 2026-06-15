@@ -781,6 +781,23 @@
   .lvl-toast-star{font-size:30px;line-height:1}
   .lvl-toast-title{font:700 22px 'Fredoka',sans-serif;color:#F0A93C}
   .lvl-toast-sub{font-size:13px;color:rgba(255,243,224,.68);margin-top:1px}
+  /* ---- Guitar Vision camera stage ---- */
+  #cameraStage{position:fixed;inset:0;z-index:60;display:flex;flex-direction:column;background:#000;color:#FFF3E0}
+  #camTop{display:flex;gap:10px;align-items:center;padding:12px 16px;background:rgba(0,0,0,.65);flex-shrink:0;flex-wrap:wrap}
+  #camTitle{font-family:'Fredoka',sans-serif;font-weight:700;font-size:15px;letter-spacing:.12em;flex:1}
+  #camMain{flex:1;position:relative;overflow:hidden}
+  #camFeed{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+  #camCanvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+  #camCalOverlay{position:absolute;inset:0;background:rgba(0,0,0,.6);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:5;gap:24px}
+  #camCalMsg{font-family:'Fredoka',sans-serif;font-size:30px;font-weight:700;color:#fff;text-shadow:0 3px 20px rgba(0,0,0,.8);text-align:center;padding:0 30px}
+  #camCalTip{font-size:13px;color:rgba(255,255,255,.7);text-align:center;max-width:280px;line-height:1.5}
+  #camBottom{display:flex;align-items:center;gap:20px;padding:10px 18px;background:rgba(0,0,0,.65);flex-shrink:0}
+  #camDiagram{width:90px;flex-shrink:0}
+  #camChordLabel{font-family:'Fredoka',sans-serif;font-size:22px;font-weight:700;color:var(--honey)}
+  #camTip{font-size:12px;opacity:.72;max-width:320px;line-height:1.45;margin-top:3px}
+  #camCalStatus{font-size:11px;opacity:.5;margin-top:5px}
+  #camChordSel,#camRootSel,#camScaleSel{background:rgba(255,255,255,.12);color:#FFF3E0;border:1.5px solid rgba(255,255,255,.28);border-radius:8px;padding:5px 8px;font-family:'Fredoka',sans-serif;font-size:13px}
+  #camRootSel,#camScaleSel{display:none}
 </style>
 </head>
 <body>
@@ -834,6 +851,8 @@
           <small>Loop-pedal recorder. Lay down a riff, stack layers over it.</small></span></button>
         <button class="menu-card" id="learnBtn" style="--acc:#6FCF7C"><svg class="card-icon" viewBox="0 0 40 40"><rect x="7" y="7" width="11" height="11" rx="3" fill="#6FCF7C"/><rect x="22" y="7" width="11" height="11" rx="3" fill="#6FCF7C" opacity=".75"/><rect x="7" y="22" width="11" height="11" rx="3" fill="#6FCF7C" opacity=".75"/><rect x="22" y="22" width="11" height="11" rx="3" fill="#6FCF7C" opacity=".5"/><circle cx="12.5" cy="12.5" r="2.4" fill="#221406"/><circle cx="27.5" cy="12.5" r="2.4" fill="#221406"/><circle cx="12.5" cy="27.5" r="2.4" fill="#221406"/></svg><span class="card-text">Chord Library
         <small>Every shape, with diagrams and a strum drill.</small></span></button>
+      <button class="menu-card" id="cameraBtn" style="--acc:#4ECDC4"><svg class="card-icon" viewBox="0 0 40 40"><rect x="4" y="11" width="32" height="22" rx="4" fill="none" stroke="currentColor" stroke-width="2.5"/><circle cx="20" cy="22" r="6" fill="none" stroke="currentColor" stroke-width="2.5"/><circle cx="20" cy="22" r="2.5" fill="currentColor"/><path d="M14 11 l3-4 h6 l3 4" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linejoin="round"/><circle cx="32" cy="16" r="1.8" fill="currentColor" opacity=".6"/></svg><span class="card-text">Guitar Vision
+        <small>Point your camera at the fretboard. See chord &amp; scale overlays.</small></span></button>
     </div>
   </div>
 
@@ -1279,6 +1298,35 @@
   </div>
 </div>
 
+<!-- Guitar Vision Camera Stage -->
+<div id="cameraStage" style="display:none">
+  <div id="camTop">
+    <button class="pill-btn" id="camBack">&#8592; Back</button>
+    <span id="camTitle">GUITAR VISION</span>
+    <button class="pill-btn" id="camModeBtn">Chord</button>
+    <select id="camChordSel"></select>
+    <select id="camRootSel"></select>
+    <select id="camScaleSel"></select>
+    <button class="pill-btn" id="camCalBtn">&#9678; Calibrate</button>
+  </div>
+  <div id="camMain">
+    <video id="camFeed" autoplay playsinline muted></video>
+    <canvas id="camCanvas"></canvas>
+    <div id="camCalOverlay" style="display:none">
+      <div id="camCalMsg">Tap the NUT (where the neck meets the headstock)</div>
+      <div id="camCalTip">Tap once for the nut, once for the 12th fret.<br>The double-dot inlay on the neck marks fret 12.</div>
+    </div>
+  </div>
+  <div id="camBottom">
+    <div id="camDiagram"></div>
+    <div id="camInfo">
+      <div id="camChordLabel"></div>
+      <div id="camTip"></div>
+      <div id="camCalStatus"></div>
+    </div>
+  </div>
+</div>
+
 <script>
 /* =====================================================
    AUDIO + CHORD DETECTION
@@ -1603,6 +1651,30 @@ const CHORD_GROUPS = [
   { title:'Color chords',   note:'Sus, add9, maj7. The flavor every pop song leans on.', chords:['Cadd9','Em7','Am7','Asus2','Dsus4','Esus4','Dm7','Dmaj7','Amaj7','Gmaj7'] },
   { title:'Barre chords',   note:'One finger across all strings. Hard, then suddenly easy',  chords:['F#m','F','Bm','Bb','B','Gm','F#','Cm'] },
 ];
+
+/* Scale data for Guitar Vision */
+const SCALE_INTERVALS = {
+  'Major':            [0,2,4,5,7,9,11],
+  'Minor':            [0,2,3,5,7,8,10],
+  'Pentatonic Major': [0,2,4,7,9],
+  'Pentatonic Minor': [0,3,5,7,10],
+  'Blues':            [0,3,5,6,7,10],
+};
+const STANDARD_TUNING = [4,9,2,7,11,4]; // E A D G B e open string semitones from C
+const NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+
+function scalePositions(root, scaleKey) {
+  const intervals = SCALE_INTERVALS[scaleKey] || [];
+  const out = [];
+  for (let s = 0; s < 6; s++) {
+    for (let f = 0; f <= 12; f++) {
+      const note = (STANDARD_TUNING[s] + f) % 12;
+      const degree = intervals.indexOf((note - root + 12) % 12);
+      if (degree !== -1) out.push({ string: s, fret: f, degree });
+    }
+  }
+  return out;
+}
 
 /* Knowledge tracks: difficulty = chord vocabulary, physics stays gentle */
 const TRACKS = {
@@ -8010,7 +8082,7 @@ document.getElementById('studioBack').addEventListener('click', () => {
   document.getElementById('startOverlay').style.display = 'flex';
 });
 
-const ALL_SCREENS = ['startOverlay','practice','learn','chordDetail','gameover','songSetup','songStage','tuner','studioStage','chordChangeDrill'];
+const ALL_SCREENS = ['startOverlay','practice','learn','chordDetail','gameover','songSetup','songStage','tuner','studioStage','chordChangeDrill','cameraStage'];
 /* ---- island theme: synthesized marimba loop, home screen only ---- */
 const music = { on: false, nextTime: 0, step: 0, timer: null, gain: null, wantsPlay: false, ownCtx: null };
 function musicCtx() {
@@ -8102,6 +8174,7 @@ function goHome() {
   goHome._arm = false;
   document.getElementById('homeBtn').textContent = 'Home';
   if (typeof saStop === 'function' && sa.on) saStop();
+  if (typeof cameraStop === 'function' && cameraState.stream) cameraStop();
   // stop everything that could be running
   game.running = false;
   songState.active = false;
@@ -10322,6 +10395,261 @@ document.querySelectorAll('.overlay').forEach(ov => {
 });
 document.querySelectorAll('.home-sub').forEach(sub => {
   sub.addEventListener('click', e => { if (e.target === sub) homeNav('main'); });
+});
+
+// ---- Guitar Vision camera / AR overlay ----
+const cameraState = {
+  stream: null,
+  raf: null,
+  mode: 'chord',          // 'chord' | 'scale'
+  chord: 'Am',
+  root: 0,
+  scale: 'Pentatonic Minor',
+  cal: null,              // { nutX, nutY, f12X, f12Y } canvas pixel coords
+  calStep: 0,             // 0=done, 1=awaiting nut tap, 2=awaiting 12th fret tap
+};
+
+function camUpdateCalStatus() {
+  const el = document.getElementById('camCalStatus');
+  if (el) el.textContent = cameraState.cal
+    ? 'Fretboard calibrated ✓'
+    : 'Not calibrated — tap Calibrate to set up AR dots';
+}
+
+function camUpdateDiagram() {
+  const diag = document.getElementById('camDiagram');
+  const lbl  = document.getElementById('camChordLabel');
+  const tip  = document.getElementById('camTip');
+  if (cameraState.mode === 'chord') {
+    if (diag) diag.innerHTML = chordSVG(cameraState.chord, 90, 'dark');
+    const shape = CHORD_SHAPES[cameraState.chord];
+    if (lbl) lbl.textContent = cameraState.chord;
+    if (tip) tip.textContent = shape ? shape.tip : '';
+  } else {
+    if (diag) diag.innerHTML = '';
+    if (lbl) lbl.textContent = NOTE_NAMES[cameraState.root] + ' ' + cameraState.scale;
+    if (tip) tip.textContent = 'Dots show every scale position across the neck. Root notes are largest.';
+  }
+}
+
+function camUpdateModeUI() {
+  const isChord = cameraState.mode === 'chord';
+  const modeBtn = document.getElementById('camModeBtn');
+  if (modeBtn) { modeBtn.textContent = isChord ? 'Chord' : 'Scale'; modeBtn.classList.toggle('on', !isChord); }
+  const chordSel = document.getElementById('camChordSel');
+  const rootSel  = document.getElementById('camRootSel');
+  const scaleSel = document.getElementById('camScaleSel');
+  if (chordSel) chordSel.style.display = isChord ? '' : 'none';
+  if (rootSel)  rootSel.style.display  = isChord ? 'none' : '';
+  if (scaleSel) scaleSel.style.display = isChord ? 'none' : '';
+  camUpdateDiagram();
+}
+
+function fretToPixel(string, fret) {
+  const { nutX, nutY, f12X, f12Y } = cameraState.cal;
+  // Equal-temperament: position along string = 1 - 2^(-fret/12)
+  // At fret 12 that equals 0.5, so the nut→12th distance is exactly half the vibrating length.
+  const t     = 1 - Math.pow(0.5, fret / 12);  // 0 at nut, 0.5 at fret 12
+  const tNorm = t / 0.5;                        // normalised to our calibrated span
+  const px = nutX + (f12X - nutX) * tNorm;
+  const py = nutY + (f12Y - nutY) * tNorm;
+  // Strings sit perpendicular to the neck axis; low E on the left when facing the fretboard.
+  const dx = f12X - nutX, dy = f12Y - nutY;
+  const neckLen = Math.hypot(dx, dy) || 1;
+  const perpX = -dy / neckLen, perpY = dx / neckLen;
+  const stringWidth = neckLen * 0.32;
+  const stringOffset = (string / 5 - 0.5) * stringWidth;
+  return { x: px + perpX * stringOffset, y: py + perpY * stringOffset };
+}
+
+function drawChordDots(ctx) {
+  const shape = CHORD_SHAPES[cameraState.chord];
+  if (!shape) return;
+  const FINGER_COLORS = ['', '#F06292', '#4FC3F7', '#81C784', '#FFB74D'];
+  if (shape.barre) {
+    const b = shape.barre;
+    const p1 = fretToPixel(b.from, b.fret - 0.5);
+    const p2 = fretToPixel(b.to,   b.fret - 0.5);
+    ctx.beginPath();
+    ctx.moveTo(p1.x, p1.y);
+    ctx.lineTo(p2.x, p2.y);
+    ctx.strokeStyle = FINGER_COLORS[1] || '#F06292';
+    ctx.lineWidth = 22;
+    ctx.lineCap = 'round';
+    ctx.globalAlpha = 0.82;
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+  for (let str = 0; str < 6; str++) {
+    const f = shape.frets[str];
+    if (f <= 0) continue;
+    const finger = shape.fingers[str];
+    const inBarre = shape.barre && f === shape.barre.fret && str >= shape.barre.from && str <= shape.barre.to && finger <= 1;
+    if (inBarre) continue;
+    const pos = fretToPixel(str, f - 0.5);
+    const r = 18;
+    ctx.beginPath();
+    ctx.arc(pos.x, pos.y, r, 0, Math.PI * 2);
+    ctx.fillStyle = FINGER_COLORS[finger] || '#F0A93C';
+    ctx.fill();
+    ctx.fillStyle = '#221406';
+    ctx.font = `bold ${r * 1.1}px Fredoka, sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(String(finger || ''), pos.x, pos.y);
+  }
+}
+
+function drawScaleDots(ctx) {
+  const positions = scalePositions(cameraState.root, cameraState.scale);
+  const DEGREE_COLORS = ['#F0A93C','#4FC3F7','#81C784','#F06292','#FFB74D','#CE93D8','#80CBC4'];
+  for (const { string, fret, degree } of positions) {
+    const pos = fretToPixel(string, fret === 0 ? 0.15 : fret - 0.5);
+    const r   = degree === 0 ? 17 : 11;
+    ctx.beginPath();
+    ctx.arc(pos.x, pos.y, r, 0, Math.PI * 2);
+    ctx.fillStyle = DEGREE_COLORS[degree % 7];
+    ctx.globalAlpha = degree === 0 ? 1 : 0.72;
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    if (degree === 0) {
+      ctx.fillStyle = '#221406';
+      ctx.font = `bold 12px Fredoka, sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(NOTE_NAMES[cameraState.root], pos.x, pos.y);
+    }
+  }
+}
+
+function cameraRender() {
+  cameraState.raf = requestAnimationFrame(cameraRender);
+  const canvas = document.getElementById('camCanvas');
+  if (!canvas) return;
+  canvas.width  = canvas.clientWidth;
+  canvas.height = canvas.clientHeight;
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  if (!cameraState.cal || cameraState.calStep > 0) return;
+  if (cameraState.mode === 'chord') drawChordDots(ctx);
+  else drawScaleDots(ctx);
+}
+
+function startCalibration() {
+  cameraState.calStep = 1;
+  const overlay = document.getElementById('camCalOverlay');
+  const msg     = document.getElementById('camCalMsg');
+  if (overlay) overlay.style.display = 'flex';
+  if (msg) msg.textContent = 'Tap the NUT (where the neck meets the headstock)';
+}
+
+async function cameraStart() {
+  const stage = document.getElementById('cameraStage');
+  if (stage) stage.style.display = 'flex';
+
+  // Populate chord selector
+  const chordSel = document.getElementById('camChordSel');
+  if (chordSel) {
+    chordSel.innerHTML = Object.keys(CHORD_SHAPES).map(k => `<option value="${k}">${k}</option>`).join('');
+    chordSel.value = cameraState.chord;
+  }
+  // Populate scale selectors
+  const rootSel = document.getElementById('camRootSel');
+  if (rootSel) rootSel.innerHTML = NOTE_NAMES.map((n,i) => `<option value="${i}">${n}</option>`).join('');
+  const scaleSel = document.getElementById('camScaleSel');
+  if (scaleSel) scaleSel.innerHTML = Object.keys(SCALE_INTERVALS).map(k => `<option value="${k}">${k}</option>`).join('');
+
+  // Restore saved calibration
+  const saved = pLoad('camCal');
+  if (saved) { cameraState.cal = saved; }
+  camUpdateCalStatus();
+  camUpdateModeUI();
+
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } }
+    });
+    cameraState.stream = stream;
+    const vid = document.getElementById('camFeed');
+    if (vid) { vid.srcObject = stream; vid.play(); }
+    cameraState.raf = requestAnimationFrame(cameraRender);
+  } catch(e) {
+    alert('Camera access denied or unavailable. Please allow camera access and try again.');
+    cameraStop();
+  }
+}
+
+function cameraStop() {
+  cancelAnimationFrame(cameraState.raf);
+  cameraState.raf = null;
+  if (cameraState.stream) {
+    cameraState.stream.getTracks().forEach(t => t.stop());
+    cameraState.stream = null;
+  }
+  const vid = document.getElementById('camFeed');
+  if (vid) vid.srcObject = null;
+  const stage = document.getElementById('cameraStage');
+  if (stage) stage.style.display = 'none';
+}
+
+// Camera button — home screen
+document.getElementById('cameraBtn').addEventListener('click', () => {
+  document.getElementById('startOverlay').style.display = 'none';
+  cameraStart();
+});
+
+// Wire up camera stage controls (all run once at page load)
+document.getElementById('camBack').addEventListener('click', () => {
+  cameraStop();
+  document.getElementById('startOverlay').style.display = 'flex';
+  homeNav('main');
+  showHome(true);
+});
+
+document.getElementById('camModeBtn').addEventListener('click', () => {
+  cameraState.mode = cameraState.mode === 'chord' ? 'scale' : 'chord';
+  camUpdateModeUI();
+});
+
+document.getElementById('camChordSel').addEventListener('change', e => {
+  cameraState.chord = e.target.value;
+  camUpdateDiagram();
+});
+
+document.getElementById('camRootSel').addEventListener('change', e => {
+  cameraState.root = +e.target.value;
+  camUpdateDiagram();
+});
+
+document.getElementById('camScaleSel').addEventListener('change', e => {
+  cameraState.scale = e.target.value;
+  camUpdateDiagram();
+});
+
+document.getElementById('camCalBtn').addEventListener('click', startCalibration);
+
+// Calibration tap — overlay sits on top during calibration, so we listen here.
+// Coords are mapped to canvas space (canvas.width === canvas.clientWidth since we set them each frame).
+document.getElementById('camCalOverlay').addEventListener('click', function(e) {
+  if (cameraState.calStep === 0) return;
+  const canvas = document.getElementById('camCanvas');
+  const rect = canvas.getBoundingClientRect();
+  // canvas.width is set to canvas.clientWidth each RAF, so no scaling needed
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  const msg = document.getElementById('camCalMsg');
+  if (cameraState.calStep === 1) {
+    cameraState.cal = { nutX: x, nutY: y, f12X: 0, f12Y: 0 };
+    cameraState.calStep = 2;
+    if (msg) msg.textContent = 'Good! Now tap the 12th fret (double-dot marker)';
+  } else if (cameraState.calStep === 2) {
+    cameraState.cal.f12X = x;
+    cameraState.cal.f12Y = y;
+    cameraState.calStep = 0;
+    pSave('camCal', cameraState.cal);
+    this.style.display = 'none';
+    camUpdateCalStatus();
+  }
 });
 
 // the menu opens over a living scene
