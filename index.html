@@ -788,14 +788,11 @@
   #camMain{flex:1;position:relative;overflow:hidden}
   #camFeed{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
   #camCanvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
-  #camCalOverlay{position:absolute;inset:0;background:rgba(0,0,0,.6);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:5;gap:24px}
-  #camCalMsg{font-family:'Fredoka',sans-serif;font-size:30px;font-weight:700;color:#fff;text-shadow:0 3px 20px rgba(0,0,0,.8);text-align:center;padding:0 30px}
-  #camCalTip{font-size:13px;color:rgba(255,255,255,.7);text-align:center;max-width:280px;line-height:1.5}
   #camBottom{display:flex;align-items:center;gap:20px;padding:10px 18px;background:rgba(0,0,0,.65);flex-shrink:0}
   #camDiagram{width:90px;flex-shrink:0}
   #camChordLabel{font-family:'Fredoka',sans-serif;font-size:22px;font-weight:700;color:var(--honey)}
   #camTip{font-size:12px;opacity:.72;max-width:320px;line-height:1.45;margin-top:3px}
-  #camCalStatus{font-size:11px;opacity:.5;margin-top:5px}
+
   #camChordSel,#camRootSel,#camScaleSel{background:rgba(255,255,255,.12);color:#FFF3E0;border:1.5px solid rgba(255,255,255,.28);border-radius:8px;padding:5px 8px;font-family:'Fredoka',sans-serif;font-size:13px}
   #camRootSel,#camScaleSel{display:none}
 </style>
@@ -1307,22 +1304,16 @@
     <select id="camChordSel"></select>
     <select id="camRootSel"></select>
     <select id="camScaleSel"></select>
-    <button class="pill-btn" id="camCalBtn">&#9678; Calibrate</button>
   </div>
   <div id="camMain">
     <video id="camFeed" autoplay playsinline muted></video>
     <canvas id="camCanvas"></canvas>
-    <div id="camCalOverlay" style="display:none">
-      <div id="camCalMsg">Tap the NUT (where the neck meets the headstock)</div>
-      <div id="camCalTip">Tap once for the nut, once for the 12th fret.<br>The double-dot inlay on the neck marks fret 12.</div>
-    </div>
   </div>
   <div id="camBottom">
     <div id="camDiagram"></div>
     <div id="camInfo">
       <div id="camChordLabel"></div>
       <div id="camTip"></div>
-      <div id="camCalStatus"></div>
     </div>
   </div>
 </div>
@@ -10401,20 +10392,11 @@ document.querySelectorAll('.home-sub').forEach(sub => {
 const cameraState = {
   stream: null,
   raf: null,
-  mode: 'chord',          // 'chord' | 'scale'
+  mode: 'chord',   // 'chord' | 'scale'
   chord: 'Am',
   root: 0,
   scale: 'Pentatonic Minor',
-  cal: null,              // { nutX, nutY, f12X, f12Y } canvas pixel coords
-  calStep: 0,             // 0=done, 1=awaiting nut tap, 2=awaiting 12th fret tap
 };
-
-function camUpdateCalStatus() {
-  const el = document.getElementById('camCalStatus');
-  if (el) el.textContent = cameraState.cal
-    ? 'Fretboard calibrated ✓'
-    : 'Not calibrated — tap Calibrate to set up AR dots';
-}
 
 function camUpdateDiagram() {
   const diag = document.getElementById('camDiagram');
@@ -10445,79 +10427,165 @@ function camUpdateModeUI() {
   camUpdateDiagram();
 }
 
-function fretToPixel(string, fret) {
-  const { nutX, nutY, f12X, f12Y } = cameraState.cal;
-  // Equal-temperament: position along string = 1 - 2^(-fret/12)
-  // At fret 12 that equals 0.5, so the nut→12th distance is exactly half the vibrating length.
-  const t     = 1 - Math.pow(0.5, fret / 12);  // 0 at nut, 0.5 at fret 12
-  const tNorm = t / 0.5;                        // normalised to our calibrated span
-  const px = nutX + (f12X - nutX) * tNorm;
-  const py = nutY + (f12Y - nutY) * tNorm;
-  // Strings sit perpendicular to the neck axis; low E on the left when facing the fretboard.
-  const dx = f12X - nutX, dy = f12Y - nutY;
-  const neckLen = Math.hypot(dx, dy) || 1;
-  const perpX = -dy / neckLen, perpY = dx / neckLen;
-  const stringWidth = neckLen * 0.32;
-  const stringOffset = (string / 5 - 0.5) * stringWidth;
-  return { x: px + perpX * stringOffset, y: py + perpY * stringOffset };
+function scaleStartFret(root, scaleKey) {
+  const positions = scalePositions(root, scaleKey);
+  const roots = positions.filter(p => p.degree === 0);
+  return roots.length ? Math.min(...roots.map(p => p.fret)) : 0;
 }
 
-function drawChordDots(ctx) {
-  const shape = CHORD_SHAPES[cameraState.chord];
-  if (!shape) return;
-  const FINGER_COLORS = ['', '#F06292', '#4FC3F7', '#81C784', '#FFB74D'];
-  if (shape.barre) {
-    const b = shape.barre;
-    const p1 = fretToPixel(b.from, b.fret - 0.5);
-    const p2 = fretToPixel(b.to,   b.fret - 0.5);
+function drawVirtualFretboard(ctx, cw, ch) {
+  const NFRETS   = cameraState.mode === 'chord' ? 4 : 5;
+  const VFW      = Math.min(cw * 0.30, 210);   // fretboard display width
+  const VFH      = VFW * 1.45;                  // display height
+  const vfX      = cw - VFW - 18;              // right-edge margin
+  const vfY      = (ch - VFH) / 2;             // vertically centered
+
+  // Fret window
+  let startFret = 1;
+  if (cameraState.mode === 'chord') {
+    const shape  = CHORD_SHAPES[cameraState.chord];
+    if (shape) {
+      const fretted = shape.frets.filter(f => f > 0);
+      if (fretted.length) {
+        const minF = Math.min(...fretted), maxF = Math.max(...fretted);
+        startFret = maxF <= NFRETS ? 1 : minF;
+      }
+    }
+  } else {
+    startFret = scaleStartFret(cameraState.root, cameraState.scale);
+  }
+
+  // Padding inside the background box
+  const padL = VFW * 0.14, padR = VFW * 0.06;
+  const padT = VFH * 0.16, padB = VFH * 0.06;
+  const gw   = VFW - padL - padR;
+  const gh   = VFH - padT - padB;
+
+  const sx = i => vfX + padL + gw * i / 5;
+  const fy = f => vfY + padT + gh * (f - startFret + 0.5) / NFRETS;
+
+  // Background
+  ctx.fillStyle = 'rgba(14,8,3,0.84)';
+  ctx.beginPath();
+  ctx.roundRect(vfX - 10, vfY - 10, VFW + 20, VFH + 20, 16);
+  ctx.fill();
+
+  // Strings (6 vertical lines, thickest = low E at index 0)
+  for (let i = 0; i < 6; i++) {
     ctx.beginPath();
-    ctx.moveTo(p1.x, p1.y);
-    ctx.lineTo(p2.x, p2.y);
-    ctx.strokeStyle = FINGER_COLORS[1] || '#F06292';
-    ctx.lineWidth = 22;
-    ctx.lineCap = 'round';
-    ctx.globalAlpha = 0.82;
+    ctx.moveTo(sx(i), vfY + padT);
+    ctx.lineTo(sx(i), vfY + VFH - padB);
+    ctx.strokeStyle = 'rgba(232,223,200,.45)';
+    ctx.lineWidth = 1 + (5 - i) * 0.22;
     ctx.stroke();
-    ctx.globalAlpha = 1;
   }
-  for (let str = 0; str < 6; str++) {
-    const f = shape.frets[str];
-    if (f <= 0) continue;
-    const finger = shape.fingers[str];
-    const inBarre = shape.barre && f === shape.barre.fret && str >= shape.barre.from && str <= shape.barre.to && finger <= 1;
-    if (inBarre) continue;
-    const pos = fretToPixel(str, f - 0.5);
-    const r = 18;
-    ctx.beginPath();
-    ctx.arc(pos.x, pos.y, r, 0, Math.PI * 2);
-    ctx.fillStyle = FINGER_COLORS[finger] || '#F0A93C';
-    ctx.fill();
-    ctx.fillStyle = '#221406';
-    ctx.font = `bold ${r * 1.1}px Fredoka, sans-serif`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(String(finger || ''), pos.x, pos.y);
-  }
-}
 
-function drawScaleDots(ctx) {
-  const positions = scalePositions(cameraState.root, cameraState.scale);
-  const DEGREE_COLORS = ['#F0A93C','#4FC3F7','#81C784','#F06292','#FFB74D','#CE93D8','#80CBC4'];
-  for (const { string, fret, degree } of positions) {
-    const pos = fretToPixel(string, fret === 0 ? 0.15 : fret - 0.5);
-    const r   = degree === 0 ? 17 : 11;
+  // Fret lines
+  for (let f = 0; f <= NFRETS; f++) {
+    const y = vfY + padT + gh * f / NFRETS;
     ctx.beginPath();
-    ctx.arc(pos.x, pos.y, r, 0, Math.PI * 2);
-    ctx.fillStyle = DEGREE_COLORS[degree % 7];
-    ctx.globalAlpha = degree === 0 ? 1 : 0.72;
-    ctx.fill();
-    ctx.globalAlpha = 1;
-    if (degree === 0) {
-      ctx.fillStyle = '#221406';
-      ctx.font = `bold 12px Fredoka, sans-serif`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(NOTE_NAMES[cameraState.root], pos.x, pos.y);
+    ctx.moveTo(vfX + padL, y);
+    ctx.lineTo(vfX + VFW - padR, y);
+    ctx.strokeStyle = 'rgba(232,223,200,.28)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  }
+
+  // Nut or fret-number label
+  if (startFret === 1) {
+    ctx.fillStyle = '#F0E4C8';
+    ctx.fillRect(vfX + padL - 2, vfY + padT - 6, gw + 4, 7);
+  } else {
+    ctx.fillStyle = '#F0A93C';
+    ctx.font = `bold ${VFW * 0.09}px Fredoka, sans-serif`;
+    ctx.textAlign = 'end';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(`${startFret}fr`, vfX + padL - 5, fy(startFret));
+  }
+
+  const FINGER_COLORS = ['', '#F06292', '#4FC3F7', '#81C784', '#FFB74D'];
+  const dotR = VFW * 0.072;
+
+  if (cameraState.mode === 'chord') {
+    const shape = CHORD_SHAPES[cameraState.chord];
+    if (!shape) return;
+
+    // Mutes and opens above the nut/grid
+    for (let i = 0; i < 6; i++) {
+      const f = shape.frets[i];
+      if (f === -1) {
+        ctx.fillStyle = 'rgba(255,77,109,.9)';
+        ctx.font = `800 ${VFW * 0.088}px Fredoka, sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('×', sx(i), vfY + padT - VFH * 0.055);
+      } else if (f === 0) {
+        ctx.beginPath();
+        ctx.arc(sx(i), vfY + padT - VFH * 0.06, dotR * 0.62, 0, Math.PI * 2);
+        ctx.strokeStyle = '#8FD694';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }
+    }
+
+    // Barre
+    if (shape.barre) {
+      const b = shape.barre;
+      const barreY = fy(b.fret);
+      ctx.beginPath();
+      ctx.moveTo(sx(b.from), barreY);
+      ctx.lineTo(sx(b.to),   barreY);
+      ctx.strokeStyle = FINGER_COLORS[1];
+      ctx.lineWidth = dotR * 2.1;
+      ctx.lineCap = 'round';
+      ctx.globalAlpha = 0.85;
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+      ctx.lineCap = 'butt';
+    }
+
+    // Finger dots
+    for (let i = 0; i < 6; i++) {
+      const f = shape.frets[i];
+      if (f <= 0) continue;
+      const finger  = shape.fingers[i];
+      const inBarre = shape.barre && f === shape.barre.fret && i >= shape.barre.from && i <= shape.barre.to && finger <= 1;
+      if (inBarre) continue;
+      const dotY = fy(f);
+      ctx.beginPath();
+      ctx.arc(sx(i), dotY, dotR, 0, Math.PI * 2);
+      ctx.fillStyle = FINGER_COLORS[finger] || '#F0A93C';
+      ctx.fill();
+      if (finger > 0) {
+        ctx.fillStyle = '#221406';
+        ctx.font = `bold ${dotR * 1.45}px Fredoka, sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(String(finger), sx(i), dotY);
+      }
+    }
+
+  } else {
+    // Scale mode
+    const DEGREE_COLORS = ['#F0A93C','#4FC3F7','#81C784','#F06292','#FFB74D','#CE93D8','#80CBC4'];
+    const endFret = startFret + NFRETS - 1;
+    const positions = scalePositions(cameraState.root, cameraState.scale)
+      .filter(p => p.fret >= startFret && p.fret <= endFret);
+    for (const { string, fret, degree } of positions) {
+      const r = degree === 0 ? dotR * 1.1 : dotR * 0.72;
+      ctx.beginPath();
+      ctx.arc(sx(string), fy(fret), r, 0, Math.PI * 2);
+      ctx.fillStyle = DEGREE_COLORS[degree % 7];
+      ctx.globalAlpha = degree === 0 ? 1 : 0.78;
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      if (degree === 0) {
+        ctx.fillStyle = '#221406';
+        ctx.font = `bold ${r * 1.1}px Fredoka, sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(NOTE_NAMES[cameraState.root], sx(string), fy(fret));
+      }
     }
   }
 }
@@ -10530,17 +10598,7 @@ function cameraRender() {
   canvas.height = canvas.clientHeight;
   const ctx = canvas.getContext('2d');
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  if (!cameraState.cal || cameraState.calStep > 0) return;
-  if (cameraState.mode === 'chord') drawChordDots(ctx);
-  else drawScaleDots(ctx);
-}
-
-function startCalibration() {
-  cameraState.calStep = 1;
-  const overlay = document.getElementById('camCalOverlay');
-  const msg     = document.getElementById('camCalMsg');
-  if (overlay) overlay.style.display = 'flex';
-  if (msg) msg.textContent = 'Tap the NUT (where the neck meets the headstock)';
+  drawVirtualFretboard(ctx, canvas.width, canvas.height);
 }
 
 async function cameraStart() {
@@ -10559,10 +10617,6 @@ async function cameraStart() {
   const scaleSel = document.getElementById('camScaleSel');
   if (scaleSel) scaleSel.innerHTML = Object.keys(SCALE_INTERVALS).map(k => `<option value="${k}">${k}</option>`).join('');
 
-  // Restore saved calibration
-  const saved = pLoad('camCal');
-  if (saved) { cameraState.cal = saved; }
-  camUpdateCalStatus();
   camUpdateModeUI();
 
   try {
@@ -10626,31 +10680,6 @@ document.getElementById('camScaleSel').addEventListener('change', e => {
   camUpdateDiagram();
 });
 
-document.getElementById('camCalBtn').addEventListener('click', startCalibration);
-
-// Calibration tap — overlay sits on top during calibration, so we listen here.
-// Coords are mapped to canvas space (canvas.width === canvas.clientWidth since we set them each frame).
-document.getElementById('camCalOverlay').addEventListener('click', function(e) {
-  if (cameraState.calStep === 0) return;
-  const canvas = document.getElementById('camCanvas');
-  const rect = canvas.getBoundingClientRect();
-  // canvas.width is set to canvas.clientWidth each RAF, so no scaling needed
-  const x = e.clientX - rect.left;
-  const y = e.clientY - rect.top;
-  const msg = document.getElementById('camCalMsg');
-  if (cameraState.calStep === 1) {
-    cameraState.cal = { nutX: x, nutY: y, f12X: 0, f12Y: 0 };
-    cameraState.calStep = 2;
-    if (msg) msg.textContent = 'Good! Now tap the 12th fret (double-dot marker)';
-  } else if (cameraState.calStep === 2) {
-    cameraState.cal.f12X = x;
-    cameraState.cal.f12Y = y;
-    cameraState.calStep = 0;
-    pSave('camCal', cameraState.cal);
-    this.style.display = 'none';
-    camUpdateCalStatus();
-  }
-});
 
 // the menu opens over a living scene
 ambientStart();
